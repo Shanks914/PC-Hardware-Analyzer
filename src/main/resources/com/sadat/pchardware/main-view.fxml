@@ -29,6 +29,7 @@
                 <fx:include fx:id="ssdPage" source="ssd-page.fxml" />
                 <fx:include fx:id="hddPage" source="hdd-page.fxml" />
                 <fx:include fx:id="gpuPage" source="gpu-page.fxml" />
+                <fx:include fx:id="psuPage" source="psu-page.fxml" />
             </children>
         </StackPane>
     </center>
