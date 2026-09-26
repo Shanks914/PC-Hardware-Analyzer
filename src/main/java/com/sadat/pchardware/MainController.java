@@ -29,6 +29,8 @@ public class MainController implements AutoCloseable {
     @FXML private GpuPageController gpuPageController;
     @FXML private PsuPageController psuPageController;
     @FXML private CategoryChooserController categoryChooserController;
+    @FXML private SavedBuildPageController loadBuildPageController;
+    @FXML private SavedBuildPageController deleteBuildPageController;
 
     private final CatalogService catalogService = new CatalogService();
     private final BuildRepository buildRepository = new SqliteBuildRepository();
@@ -47,10 +49,16 @@ public class MainController implements AutoCloseable {
         builderController.setOnRemove(this::removePart);
         buildPanelController.setActions(
                 this::saveBuild,
-                this::loadSavedBuild,
-                this::deleteSavedBuild,
+                this::showLoadBuildPage,
+                this::showDeleteBuildPage,
                 this::newBuild
         );
+        loadBuildPageController.configure("Load a saved build",
+                "Choose a saved build to restore it in the PC builder.", "Load selected build",
+                this::showBuilderPage, this::loadSelectedBuild);
+        deleteBuildPageController.configure("Delete a saved build",
+                "Select a build to permanently remove it from SQLite.", "Delete selected build",
+                this::showBuilderPage, this::deleteSelectedBuild);
         processorPageController.setActions(
                 this::showBuilderPage,
                 part -> {
@@ -279,6 +287,7 @@ public class MainController implements AutoCloseable {
     }
 
     private void showProcessorPage() {
+        hideSavedBuildPages();
         categoryChooserController.getView().setVisible(false); categoryChooserController.getView().setManaged(false);
         psuPageController.getView().setVisible(false); psuPageController.getView().setManaged(false);
         gpuPageController.getView().setVisible(false); gpuPageController.getView().setManaged(false);
@@ -295,6 +304,7 @@ public class MainController implements AutoCloseable {
     }
 
     private void showMotherboardPage() {
+        hideSavedBuildPages();
         categoryChooserController.getView().setVisible(false); categoryChooserController.getView().setManaged(false);
         psuPageController.getView().setVisible(false); psuPageController.getView().setManaged(false);
         gpuPageController.getView().setVisible(false); gpuPageController.getView().setManaged(false);
@@ -311,6 +321,7 @@ public class MainController implements AutoCloseable {
     }
 
     private void showRamPage() {
+        hideSavedBuildPages();
         categoryChooserController.getView().setVisible(false); categoryChooserController.getView().setManaged(false);
         psuPageController.getView().setVisible(false); psuPageController.getView().setManaged(false);
         gpuPageController.getView().setVisible(false); gpuPageController.getView().setManaged(false);
@@ -327,6 +338,7 @@ public class MainController implements AutoCloseable {
     }
 
     private void showBuilderPage() {
+        hideSavedBuildPages();
         categoryChooserController.getView().setVisible(false); categoryChooserController.getView().setManaged(false);
         psuPageController.getView().setVisible(false); psuPageController.getView().setManaged(false);
         gpuPageController.getView().setVisible(false); gpuPageController.getView().setManaged(false);
@@ -343,6 +355,7 @@ public class MainController implements AutoCloseable {
     }
 
     private void showSsdPage() {
+        hideSavedBuildPages();
         categoryChooserController.getView().setVisible(false); categoryChooserController.getView().setManaged(false);
         psuPageController.getView().setVisible(false); psuPageController.getView().setManaged(false);
         gpuPageController.getView().setVisible(false); gpuPageController.getView().setManaged(false);
@@ -355,6 +368,7 @@ public class MainController implements AutoCloseable {
     }
 
     private void showHddPage() {
+        hideSavedBuildPages();
         categoryChooserController.getView().setVisible(false); categoryChooserController.getView().setManaged(false);
         psuPageController.getView().setVisible(false); psuPageController.getView().setManaged(false);
         gpuPageController.getView().setVisible(false); gpuPageController.getView().setManaged(false);
@@ -367,6 +381,7 @@ public class MainController implements AutoCloseable {
     }
 
     private void showGpuPage() {
+        hideSavedBuildPages();
         categoryChooserController.getView().setVisible(false); categoryChooserController.getView().setManaged(false);
         psuPageController.getView().setVisible(false); psuPageController.getView().setManaged(false);
         builderScroll.setVisible(false); builderScroll.setManaged(false);
@@ -379,6 +394,7 @@ public class MainController implements AutoCloseable {
     }
 
     private void showPsuPage() {
+        hideSavedBuildPages();
         categoryChooserController.getView().setVisible(false); categoryChooserController.getView().setManaged(false);
         builderScroll.setVisible(false); builderScroll.setManaged(false);
         processorPageController.getView().setVisible(false); processorPageController.getView().setManaged(false);
@@ -391,6 +407,7 @@ public class MainController implements AutoCloseable {
     }
 
     private void showCategoryChooserPage() {
+        hideSavedBuildPages();
         builderScroll.setVisible(false); builderScroll.setManaged(false);
         processorPageController.getView().setVisible(false); processorPageController.getView().setManaged(false);
         motherboardPageController.getView().setVisible(false); motherboardPageController.getView().setManaged(false);
@@ -423,69 +440,84 @@ public class MainController implements AutoCloseable {
         }
     }
 
-    private void loadSavedBuild() {
+    private void showLoadBuildPage() {
+        hideAllPages();
         try {
-            List<SavedBuild> savedBuilds = buildRepository.findAll();
-            if (savedBuilds.isEmpty()) {
-                showMessage(Alert.AlertType.INFORMATION, "No saved builds", "Save a build first.");
-                return;
-            }
-            ChoiceDialog<SavedBuild> dialog = new ChoiceDialog<>(savedBuilds.get(0), savedBuilds);
-            dialog.setTitle("Load PC build");
-            dialog.setHeaderText("Choose a saved build to load");
-            dialog.setContentText("Saved builds:");
-            dialog.showAndWait().ifPresent(selected -> {
-                try {
-                    SavedBuild saved = buildRepository.findById(selected.id());
-                    if (saved != null) {
-                        activeBuildId = saved.id();
-                        activeBuildName = saved.name();
-                        build.clear();
-                        for (Part part : saved.parts()) {
-                            build.put(slotFor(part), part);
-                        }
-                        refreshBuild();
-                    }
-                } catch (SQLException e) {
-                    showMessage(Alert.AlertType.ERROR, "Database error", e.getMessage());
-                }
-            });
+            loadBuildPageController.setBuilds(buildRepository.findAll());
+            loadBuildPageController.getView().setVisible(true);
+            loadBuildPageController.getView().setManaged(true);
         } catch (SQLException e) {
             showMessage(Alert.AlertType.ERROR, "Database error", e.getMessage());
+            showBuilderPage();
         }
     }
 
-    private void deleteSavedBuild() {
+    private void showDeleteBuildPage() {
+        hideAllPages();
         try {
-            List<SavedBuild> savedBuilds = buildRepository.findAll();
-            if (savedBuilds.isEmpty()) {
-                showMessage(Alert.AlertType.INFORMATION, "No saved builds", "There are no builds to delete.");
-                return;
-            }
-            ChoiceDialog<SavedBuild> dialog = new ChoiceDialog<>(savedBuilds.get(0), savedBuilds);
-            dialog.setTitle("Delete PC build");
-            dialog.setHeaderText("Choose a saved build to delete");
-            dialog.setContentText("Saved builds:");
-            dialog.showAndWait().ifPresent(selected -> {
-                Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION,
-                        "Delete '" + selected.name() + "'? This cannot be undone.");
-                confirmation.setHeaderText("Confirm deletion");
-                if (confirmation.showAndWait().filter(button -> button == javafx.scene.control.ButtonType.OK).isPresent()) {
-                    try {
-                        buildRepository.delete(selected.id());
-                        if (activeBuildId != null && activeBuildId == selected.id()) {
-                            activeBuildId = null;
-                            activeBuildName = null;
-                            refreshBuild();
-                        }
-                        showMessage(Alert.AlertType.INFORMATION, "Build deleted", "The saved build was removed.");
-                    } catch (SQLException e) {
-                        showMessage(Alert.AlertType.ERROR, "Database error", e.getMessage());
-                    }
-                }
-            });
+            deleteBuildPageController.setBuilds(buildRepository.findAll());
+            deleteBuildPageController.getView().setVisible(true);
+            deleteBuildPageController.getView().setManaged(true);
         } catch (SQLException e) {
             showMessage(Alert.AlertType.ERROR, "Database error", e.getMessage());
+            showBuilderPage();
+        }
+    }
+
+    private void loadSelectedBuild(SavedBuild selected) {
+        try {
+            SavedBuild saved = buildRepository.findById(selected.id());
+            if (saved == null) {
+                loadBuildPageController.setStatus("That saved build no longer exists. Refresh the page.");
+                return;
+            }
+            activeBuildId = saved.id();
+            activeBuildName = saved.name();
+            build.clear();
+            for (Part part : saved.parts()) build.put(slotFor(part), part);
+            refreshBuild();
+            showBuilderPage();
+        } catch (SQLException e) {
+            loadBuildPageController.setStatus("Could not load build: " + e.getMessage());
+        }
+    }
+
+    private void deleteSelectedBuild(SavedBuild selected) {
+        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION,
+                "Delete '" + selected.name() + "'? This cannot be undone.");
+        confirmation.setHeaderText("Confirm deletion");
+        if (confirmation.showAndWait().filter(button -> button == javafx.scene.control.ButtonType.OK).isEmpty()) return;
+        try {
+            buildRepository.delete(selected.id());
+            if (activeBuildId != null && activeBuildId == selected.id()) {
+                activeBuildId = null;
+                activeBuildName = null;
+                build.clear();
+                refreshBuild();
+            }
+            deleteBuildPageController.setBuilds(buildRepository.findAll());
+            deleteBuildPageController.setStatus("Saved build deleted.");
+        } catch (SQLException e) {
+            deleteBuildPageController.setStatus("Could not delete build: " + e.getMessage());
+        }
+    }
+
+    private void hideSavedBuildPages() {
+        for (Node page : List.of(loadBuildPageController.getView(), deleteBuildPageController.getView())) {
+            page.setVisible(false);
+            page.setManaged(false);
+        }
+    }
+
+    private void hideAllPages() {
+        builderScroll.setVisible(false);
+        builderScroll.setManaged(false);
+        for (Node page : List.of(processorPageController.getView(), motherboardPageController.getView(),
+                ramPageController.getView(), ssdPageController.getView(), hddPageController.getView(),
+                gpuPageController.getView(), psuPageController.getView(), categoryChooserController.getView(),
+                loadBuildPageController.getView(), deleteBuildPageController.getView())) {
+            page.setVisible(false);
+            page.setManaged(false);
         }
     }
 

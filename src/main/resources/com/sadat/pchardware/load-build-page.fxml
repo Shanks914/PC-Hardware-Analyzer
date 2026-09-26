@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="root" visible="false" managed="false" xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.sadat.pchardware.SavedBuildPageController"
+            styleClass="app-root processor-page">
+  <center>
+    <VBox spacing="16" maxWidth="900" styleClass="product-results">
+      <padding><Insets top="28" right="28" bottom="28" left="28"/></padding>
+      <children>
+        <Button text="← Back to builder" onAction="#goBack" styleClass="text-button" maxWidth="180"/>
+        <Label fx:id="titleLabel" text="Load a saved build" styleClass="page-title"/>
+        <Label fx:id="descriptionLabel" text="Choose a build to restore it in the PC builder." styleClass="muted-label" wrapText="true"/>
+        <ListView fx:id="buildsList" prefHeight="440" styleClass="saved-build-list" VBox.vgrow="ALWAYS"/>
+        <Label fx:id="statusLabel" text="Loading saved builds…" styleClass="muted-label" wrapText="true"/>
+        <Button fx:id="actionButton" text="Load selected build" styleClass="button-primary" maxWidth="240"/>
+      </children>
+    </VBox>
+  </center>
+</BorderPane>

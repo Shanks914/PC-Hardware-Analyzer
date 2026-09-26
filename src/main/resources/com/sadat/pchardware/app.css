@@ -74,6 +74,24 @@
     -fx-text-fill: #0b1711;
     -fx-font-weight: bold;
 }
+.button-danger {
+    -fx-background-color: #8d303b;
+    -fx-text-fill: #fff4f4;
+    -fx-font-weight: bold;
+}
+.saved-build-list, .saved-build-list .list-cell {
+    -fx-background-color: #111722;
+    -fx-text-fill: #cbd3df;
+}
+.saved-build-list .list-cell {
+    -fx-padding: 12;
+    -fx-border-color: transparent transparent #202938 transparent;
+}
+.saved-build-list .list-cell:filled:selected,
+.saved-build-list .list-cell:filled:selected:focused {
+    -fx-background-color: #203a31;
+    -fx-text-fill: #78e2aa;
+}
 .button-secondary, .button-quiet, .category-button {
     -fx-background-color: #1a2230;
     -fx-text-fill: #cbd3df;

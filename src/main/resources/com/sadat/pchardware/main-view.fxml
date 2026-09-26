@@ -31,6 +31,8 @@
                 <fx:include fx:id="gpuPage" source="gpu-page.fxml" />
                 <fx:include fx:id="psuPage" source="psu-page.fxml" />
                 <fx:include fx:id="categoryChooser" source="category-chooser-page.fxml" />
+                <fx:include fx:id="loadBuildPage" source="load-build-page.fxml" />
+                <fx:include fx:id="deleteBuildPage" source="delete-build-page.fxml" />
             </children>
         </StackPane>
     </center>
