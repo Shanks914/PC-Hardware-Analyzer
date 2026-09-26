@@ -16,7 +16,6 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 public class MainController implements AutoCloseable {
-    @FXML private HeaderController headerController;
     @FXML private BuilderController builderController;
     @FXML private BuildPanelController buildPanelController;
     @FXML private StackPane pageHost;
@@ -44,7 +43,6 @@ public class MainController implements AutoCloseable {
 
     @FXML
     private void initialize() {
-        headerController.setActions(this::loadLocalCatalog, this::searchChanged);
         builderController.setOnChoose(this::choosePart);
         builderController.setOnRemove(this::removePart);
         buildPanelController.setActions(
@@ -133,19 +131,6 @@ public class MainController implements AutoCloseable {
 
     public void onViewReady() {
         loadLocalCatalog();
-    }
-
-    private void searchChanged(String query) {
-        searchText = query.toLowerCase().trim();
-        builderController.setSearchText(searchText);
-        if (processorPageController != null) processorPageController.setSearchQuery(query);
-        if (motherboardPageController != null) motherboardPageController.setSearchQuery(query);
-        if (ramPageController != null) ramPageController.setSearchQuery(query);
-        if (ssdPageController != null) ssdPageController.setSearchQuery(query);
-        if (hddPageController != null) hddPageController.setSearchQuery(query);
-        if (gpuPageController != null) gpuPageController.setSearchQuery(query);
-        if (psuPageController != null) psuPageController.setSearchQuery(query);
-        if (categoryChooserController != null) categoryChooserController.setSearchQuery(query);
     }
 
     private void refreshBuild() {
@@ -425,16 +410,19 @@ public class MainController implements AutoCloseable {
             return;
         }
         TextInputDialog dialog = new TextInputDialog(activeBuildName == null ? "My PC Build" : activeBuildName);
-        dialog.setTitle("Save PC build");
-        dialog.setHeaderText(activeBuildId == null ? "Create a saved build" : "Update this saved build");
+        dialog.setTitle("Save / Update build");
+        dialog.setHeaderText(activeBuildId == null ? "Name your PC build" : "Update the saved PC build");
         dialog.setContentText("Build name:");
         Optional<String> result = dialog.showAndWait();
         if (result.isEmpty() || result.get().isBlank()) return;
         try {
-            activeBuildName = result.get().trim();
-            activeBuildId = buildRepository.save(activeBuildId, activeBuildName, List.copyOf(build.values()));
+            String requestedName = result.get().trim();
+            Long existingId = activeBuildId;
+            long savedId = buildRepository.save(existingId, requestedName, List.copyOf(build.values()));
+            activeBuildName = requestedName;
+            activeBuildId = savedId;
             refreshBuild();
-            showMessage(Alert.AlertType.INFORMATION, "Build saved", "Your build is stored in SQLite.");
+            showMessage(Alert.AlertType.INFORMATION, "Build saved", "“" + activeBuildName + "” was saved to the SQLite database.");
         } catch (SQLException e) {
             showMessage(Alert.AlertType.ERROR, "Database error", e.getMessage());
         }
@@ -483,10 +471,14 @@ public class MainController implements AutoCloseable {
     }
 
     private void deleteSelectedBuild(SavedBuild selected) {
+        javafx.scene.control.ButtonType deleteButton = new javafx.scene.control.ButtonType(
+                "Delete build", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
         Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION,
-                "Delete '" + selected.name() + "'? This cannot be undone.");
+                "Delete '" + selected.name() + "'? This cannot be undone.",
+                deleteButton, javafx.scene.control.ButtonType.CANCEL);
+        confirmation.setTitle("Confirm deletion");
         confirmation.setHeaderText("Confirm deletion");
-        if (confirmation.showAndWait().filter(button -> button == javafx.scene.control.ButtonType.OK).isEmpty()) return;
+        if (confirmation.showAndWait().filter(button -> button == deleteButton).isEmpty()) return;
         try {
             buildRepository.delete(selected.id());
             if (activeBuildId != null && activeBuildId == selected.id()) {
