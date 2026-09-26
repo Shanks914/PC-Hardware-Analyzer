@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<BorderPane fx:id="root" visible="false" managed="false" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.sadat.pchardware.HddPageController" styleClass="app-root processor-page">
+ <center><VBox spacing="16" styleClass="workspace"><children>
+  <HBox alignment="CENTER_LEFT" spacing="14"><children><Button text="← Back to build" onAction="#backToBuild" styleClass="button-secondary"/><VBox spacing="4"><children><Label text="CHOOSE A COMPONENT" styleClass="eyebrow"/><Label text="Hard Disk Drives" styleClass="page-title"/></children></VBox></children></HBox>
+  <HBox spacing="18" VBox.vgrow="ALWAYS" styleClass="chooser-layout"><children>
+   <ScrollPane fitToWidth="true" prefWidth="270" minWidth="245" maxWidth="300" styleClass="filter-scroll"><content><VBox spacing="11" styleClass="filter-panel"><children>
+    <HBox alignment="CENTER_LEFT"><children><Label text="Filter HDDs" styleClass="panel-title"/><Label text="" HBox.hgrow="ALWAYS"/><Button text="Clear all" onAction="#clearFilters" styleClass="text-button"/></children></HBox>
+    <Label text="PRICE RANGE (৳)" styleClass="section-label"/><HBox spacing="8"><children><TextField fx:id="minPriceField" promptText="Min" HBox.hgrow="ALWAYS"/><TextField fx:id="maxPriceField" promptText="Max" HBox.hgrow="ALWAYS"/></children></HBox>
+    <Label text="AVAILABILITY" styleClass="section-label"/><ComboBox fx:id="availabilityFilter" maxWidth="Infinity"/>
+    <Label text="COLOR" styleClass="section-label"/><ComboBox fx:id="colorFilter" maxWidth="Infinity"/>
+    <Label text="READ SPEED" styleClass="section-label"/><ComboBox fx:id="readSpeedFilter" maxWidth="Infinity"/>
+    <Label text="WRITE SPEED" styleClass="section-label"/><ComboBox fx:id="writeSpeedFilter" maxWidth="Infinity"/>
+    <Label text="BRAND" styleClass="section-label"/><ComboBox fx:id="brandFilter" maxWidth="Infinity"/>
+    <Label text="CAPACITY" styleClass="section-label"/><ComboBox fx:id="capacityFilter" maxWidth="Infinity"/>
+    <Label text="FORM FACTOR" styleClass="section-label"/><ComboBox fx:id="formFactorFilter" maxWidth="Infinity"/>
+    <Label text="ROTATIONAL SPEED" styleClass="section-label"/><ComboBox fx:id="rpmFilter" maxWidth="Infinity"/>
+    <CheckBox fx:id="compatibleOnlyFilter" text="Only compatible with selected motherboard" styleClass="hide-checkbox"/>
+    <Button text="Apply filters" onAction="#applyFilters" styleClass="button-primary" maxWidth="Infinity"/>
+   </children><padding><Insets top="16" right="16" bottom="16" left="16"/></padding></VBox></content></ScrollPane>
+   <VBox spacing="14" HBox.hgrow="ALWAYS" styleClass="product-results"><children>
+    <HBox alignment="CENTER_LEFT" spacing="10"><children><Label text="Hard Disk Drives" styleClass="panel-title"/><Label fx:id="resultCount" text="0 HDDs" styleClass="muted-label"/></children></HBox>
+    <Label fx:id="compatibilityHint" text="Choose a motherboard to enable compatibility filtering." styleClass="status-label"/>
+    <HBox spacing="10" alignment="CENTER_LEFT"><children><TextField fx:id="searchField" promptText="Search HDD by name or specification..." onAction="#applyFilters" HBox.hgrow="ALWAYS"/><Button text="Search" onAction="#applyFilters" styleClass="button-secondary"/><ComboBox fx:id="sortBox" prefWidth="175"/></children></HBox>
+    <Label fx:id="pageStatus" text="" styleClass="status-label"/>
+    <ScrollPane fitToWidth="true" pannable="true" VBox.vgrow="ALWAYS" styleClass="results-scroll"><content><VBox fx:id="productRows" spacing="10"/></content></ScrollPane>
+    <HBox alignment="CENTER_RIGHT" spacing="12"><children><Label fx:id="paginationLabel" text="Page 1 of 1" styleClass="muted-label"/><Button fx:id="previousButton" text="Previous" onAction="#previousPage" styleClass="button-secondary"/><Button fx:id="nextButton" text="Next" onAction="#nextPage" styleClass="button-secondary"/></children></HBox>
+   </children></VBox>
+  </children></HBox>
+ </children></VBox></center>
+</BorderPane>

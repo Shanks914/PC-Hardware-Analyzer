@@ -85,9 +85,22 @@ public final class BuildCompatibility {
                         "Not compatible: the selected motherboard does not support the SSD interface/slot requirements (" + ssdInterface + ").");
             }
         }
+        Part hdd = build.get("storage-hdd");
+        if (hdd != null && !motherboard.attribute("storageInterfaces").isBlank()) {
+            String interfaces = motherboard.attribute("storageInterfaces").toUpperCase(Locale.ROOT);
+            if (!interfaces.contains("SATA") || !hdd.attribute("interface").equalsIgnoreCase("SATA")) {
+                return new Result(State.INCOMPATIBLE, "Not compatible: the selected motherboard does not list SATA support for the HDD.");
+            }
+            int sataDevices = (ssd != null && ssd.attribute("interface").equalsIgnoreCase("SATA") ? 1 : 0) + 1;
+            int sataPorts = parseInt(motherboard.attribute("sataPorts"));
+            if (sataPorts > 0 && sataDevices > sataPorts) {
+                return new Result(State.INCOMPATIBLE, "Not compatible: selected SATA drives exceed the motherboard’s " + sataPorts + " SATA ports.");
+            }
+        }
         return new Result(State.COMPATIBLE, "Compatible: processor and motherboard both use " + cpuSocket
                 + (ram == null ? "" : "; selected memory matches " + valueOrExtract(motherboard, "ramType", RAM_PATTERN))
-                + (ssd == null ? "." : "; selected SSD interface is supported."));
+                + (ssd == null ? "" : "; selected SSD interface is supported.")
+                + (hdd == null ? "" : "; selected HDD has a supported SATA connection."));
     }
 
     private static String valueOrExtract(Part part, String key, Pattern pattern) {
