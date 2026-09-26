@@ -28,6 +28,7 @@
                 <fx:include fx:id="ramPage" source="ram-page.fxml" />
                 <fx:include fx:id="ssdPage" source="ssd-page.fxml" />
                 <fx:include fx:id="hddPage" source="hdd-page.fxml" />
+                <fx:include fx:id="gpuPage" source="gpu-page.fxml" />
             </children>
         </StackPane>
     </center>

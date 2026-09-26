@@ -97,10 +97,32 @@ public final class BuildCompatibility {
                 return new Result(State.INCOMPATIBLE, "Not compatible: selected SATA drives exceed the motherboard’s " + sataPorts + " SATA ports.");
             }
         }
+        Part gpu = build.get("graphics");
+        Part psu = build.get("power");
+        if (gpu != null) {
+            String x16Slots = motherboard.attribute("pcieX16Slots");
+            if (!x16Slots.isBlank() && parseInt(x16Slots) < 1) {
+                return new Result(State.INCOMPATIBLE, "Not compatible: the motherboard has no PCIe x16 slot for the selected graphics card.");
+            }
+            int requiredPsu = parseInt(gpu.attribute("recommendedPsuW"));
+            int suppliedPsu = psu == null ? 0 : wattage(psu);
+            if (requiredPsu > 0 && psu == null) {
+                return new Result(State.UNKNOWN, "Motherboard PCIe slot is suitable for the selected graphics card; select a PSU to verify its " + requiredPsu + "W recommendation.");
+            }
+            if (requiredPsu > 0 && suppliedPsu > 0 && suppliedPsu < requiredPsu) {
+                return new Result(State.INCOMPATIBLE, "Not compatible: GPU recommends a " + requiredPsu
+                        + "W PSU, but the selected power supply is " + suppliedPsu + "W.");
+            }
+            if (requiredPsu > 0 && suppliedPsu <= 0) {
+                return new Result(State.UNKNOWN, "GPU power requirement is listed, but the selected PSU wattage could not be verified.");
+            }
+        }
         return new Result(State.COMPATIBLE, "Compatible: processor and motherboard both use " + cpuSocket
                 + (ram == null ? "" : "; selected memory matches " + valueOrExtract(motherboard, "ramType", RAM_PATTERN))
                 + (ssd == null ? "" : "; selected SSD interface is supported.")
-                + (hdd == null ? "" : "; selected HDD has a supported SATA connection."));
+                + (hdd == null ? "" : "; selected HDD has a supported SATA connection.")
+                + (gpu == null ? "" : "; selected graphics card uses a compatible PCIe x16 slot"
+                + (psu == null ? "." : " and meets the selected PSU recommendation.")));
     }
 
     private static String valueOrExtract(Part part, String key, Pattern pattern) {
@@ -126,5 +148,10 @@ public final class BuildCompatibility {
 
     private static int parseInt(String value) {
         try { return Integer.parseInt(value); } catch (NumberFormatException ignored) { return 0; }
+    }
+
+    private static int wattage(Part part) {
+        Matcher matcher = Pattern.compile("(?i)(\\d+)\\s*W\\b").matcher(part.name() + " " + part.specs());
+        return matcher.find() ? Integer.parseInt(matcher.group(1)) : 0;
     }
 }
