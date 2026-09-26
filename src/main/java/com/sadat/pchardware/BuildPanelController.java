@@ -15,6 +15,7 @@ public class BuildPanelController {
     @FXML private Label buildCountLabel;
     @FXML private Label activeBuildLabel;
     @FXML private Label powerLabel;
+    @FXML private Label compatibilityLabel;
     @FXML private Button saveButton;
     @FXML private Button loadButton;
     @FXML private Button deleteButton;
@@ -51,6 +52,17 @@ public class BuildPanelController {
         totalLabel.setText(String.format("৳%,.0f", total));
         buildCountLabel.setText(parts.size() + (parts.size() == 1 ? " part selected" : " parts selected"));
         powerLabel.setText(estimateWattage(parts) + "W");
+    }
+
+    public void showCompatibility(BuildCompatibility.Result result) {
+        compatibilityLabel.setText(result.message());
+        compatibilityLabel.getStyleClass().removeAll("compatibility-neutral", "compatibility-ok", "compatibility-error", "compatibility-unknown");
+        compatibilityLabel.getStyleClass().add(switch (result.state()) {
+            case COMPATIBLE -> "compatibility-ok";
+            case INCOMPATIBLE -> "compatibility-error";
+            case UNKNOWN -> "compatibility-unknown";
+            case NEUTRAL -> "compatibility-neutral";
+        });
     }
 
     private int estimateWattage(List<Part> parts) {

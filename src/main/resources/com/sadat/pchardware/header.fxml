@@ -19,8 +19,8 @@
             </children>
         </VBox>
         <Region HBox.hgrow="ALWAYS" />
-        <TextField fx:id="searchField" promptText="Search processors, graphics cards..." prefWidth="330" />
-        <Button fx:id="syncButton" text="Sync catalog" styleClass="button-primary" />
+        <TextField fx:id="searchField" promptText="Search parts in this project..." prefWidth="330" />
+        <Button fx:id="syncButton" text="Reload local data" styleClass="button-primary" />
         <Label text="BDT  ৳" styleClass="currency-label" />
     </children>
 </HBox>

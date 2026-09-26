@@ -2,6 +2,7 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.sadat.pchardware.MainController"
@@ -10,15 +11,21 @@
         <fx:include fx:id="header" source="header.fxml" />
     </top>
     <center>
-        <ScrollPane fitToWidth="true" pannable="true" styleClass="page-scroll">
-            <content>
-                <HBox spacing="20" styleClass="workspace">
-                    <children>
-                        <fx:include fx:id="builder" source="builder.fxml" HBox.hgrow="ALWAYS" />
-                        <fx:include fx:id="buildPanel" source="build-panel.fxml" />
-                    </children>
-                </HBox>
-            </content>
-        </ScrollPane>
+        <StackPane fx:id="pageHost">
+            <children>
+                <ScrollPane fx:id="builderScroll" fitToWidth="true" pannable="true" styleClass="page-scroll">
+                    <content>
+                        <HBox fx:id="builderWorkspace" spacing="20" styleClass="workspace">
+                            <children>
+                                <fx:include fx:id="builder" source="builder.fxml" HBox.hgrow="ALWAYS" />
+                                <fx:include fx:id="buildPanel" source="build-panel.fxml" />
+                            </children>
+                        </HBox>
+                    </content>
+                </ScrollPane>
+                <fx:include fx:id="processorPage" source="processor-page.fxml" />
+                <fx:include fx:id="motherboardPage" source="motherboard-page.fxml" />
+            </children>
+        </StackPane>
     </center>
 </BorderPane>

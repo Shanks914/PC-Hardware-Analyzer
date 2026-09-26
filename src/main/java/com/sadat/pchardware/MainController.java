@@ -5,8 +5,11 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.layout.StackPane;
+import javafx.scene.Node;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Optional;
@@ -16,13 +19,15 @@ public class MainController implements AutoCloseable {
     @FXML private HeaderController headerController;
     @FXML private BuilderController builderController;
     @FXML private BuildPanelController buildPanelController;
+    @FXML private StackPane pageHost;
+    @FXML private Node builderScroll;
+    @FXML private ProcessorPageController processorPageController;
+    @FXML private MotherboardPageController motherboardPageController;
 
     private final CatalogService catalogService = new CatalogService();
     private final BuildRepository buildRepository = new SqliteBuildRepository();
     private final List<Part> sampleParts = List.of(
-            new Part("CPU", "AMD Ryzen 5 5600", "6 cores · AM4 · 65W", 18500),
             new Part("GPU", "GeForce RTX 4060", "8GB · PCIe 4.0", 47000),
-            new Part("Motherboard", "MSI B550M PRO-VDH", "AM4 · DDR4 · mATX", 14500),
             new Part("RAM", "Corsair Vengeance 16GB", "2 × 8GB · DDR4 · 3200MHz", 5200),
             new Part("Storage", "WD Blue SN580 1TB", "NVMe M.2 · PCIe 4.0", 8500),
             new Part("PSU", "Cooler Master MWE 650", "650W · 80+ Bronze", 7800)
@@ -36,7 +41,7 @@ public class MainController implements AutoCloseable {
 
     @FXML
     private void initialize() {
-        headerController.setActions(this::loadCatalog, this::searchChanged);
+        headerController.setActions(this::loadLocalCatalog, this::searchChanged);
         builderController.setOnChoose(this::choosePart);
         builderController.setOnRemove(this::removePart);
         buildPanelController.setActions(
@@ -45,39 +50,81 @@ public class MainController implements AutoCloseable {
                 this::deleteSavedBuild,
                 this::newBuild
         );
+        processorPageController.setActions(
+                this::showBuilderPage,
+                part -> {
+                    build.put("processor", part);
+                    refreshBuild();
+                    showBuilderPage();
+                }
+        );
+        motherboardPageController.setActions(
+                this::showBuilderPage,
+                part -> {
+                    build.put("motherboard", part);
+                    refreshBuild();
+                    showBuilderPage();
+                }
+        );
+        processorPageController.setParts(parts);
+        motherboardPageController.setParts(parts);
+        motherboardPageController.setSelectedProcessor(build.get("processor"));
         refreshBuild();
     }
 
     public void onViewReady() {
-        loadCatalog();
+        loadLocalCatalog();
     }
 
     private void searchChanged(String query) {
         searchText = query.toLowerCase().trim();
         builderController.setSearchText(searchText);
+        if (processorPageController != null) processorPageController.setSearchQuery(query);
+        if (motherboardPageController != null) motherboardPageController.setSearchQuery(query);
     }
 
     private void refreshBuild() {
         String label = activeBuildName == null ? "Unsaved build" : "Saved: " + activeBuildName;
         builderController.showSelections(build);
         buildPanelController.showBuild(List.copyOf(build.values()), label);
+        buildPanelController.showCompatibility(BuildCompatibility.check(build));
     }
 
-    private void loadCatalog() {
-        builderController.setCatalogStatus("Fetching catalog from GitHub...");
-        catalogService.fetchParts().whenComplete((loadedParts, error) -> Platform.runLater(() -> {
+    private void loadLocalCatalog() {
+        builderController.setCatalogStatus("Loading the project’s local JSON catalogs...");
+        catalogService.loadLocalParts().whenComplete((loadedParts, error) -> Platform.runLater(() -> {
             if (error != null) {
-                builderController.setCatalogStatus("Sync failed; sample parts are still available.");
+                builderController.setCatalogStatus("Could not read local processor/motherboard JSON. Other sample components remain available.");
             } else if (loadedParts.isEmpty()) {
-                builderController.setCatalogStatus("Catalog loaded, but it contains no valid parts.");
+                builderController.setCatalogStatus("Local JSON files contain no valid components.");
             } else {
-                parts = loadedParts;
-                builderController.setCatalogStatus("Synced " + loadedParts.size() + " parts from GitHub.");
+                List<Part> combined = new ArrayList<>(sampleParts);
+                combined.addAll(loadedParts);
+                parts = List.copyOf(combined);
+                processorPageController.setParts(parts);
+                motherboardPageController.setParts(parts);
+                long cpuCount = loadedParts.stream().filter(part -> part.category().equalsIgnoreCase("CPU")).count();
+                long boardCount = loadedParts.stream().filter(part -> part.category().equalsIgnoreCase("Motherboard")).count();
+                builderController.setCatalogStatus("Loaded " + cpuCount + " processors and " + boardCount
+                        + " motherboards from local JSON. Other slots use sample data.");
             }
         }));
     }
 
     private void choosePart(String slotKey, String category) {
+        if (slotKey.equals("processor")) {
+            processorPageController.setParts(parts);
+            processorPageController.setSelected(build.get("processor"));
+            showProcessorPage();
+            return;
+        }
+        if (slotKey.equals("motherboard")) {
+            motherboardPageController.setParts(parts);
+            motherboardPageController.setSelectedProcessor(build.get("processor"));
+            motherboardPageController.setSelectedMotherboard(build.get("motherboard"));
+            showMotherboardPage();
+            return;
+        }
         if (category == null) {
             showMessage(Alert.AlertType.INFORMATION, "Catalog category unavailable",
                     "This component type is not included in the current catalog yet.");
@@ -109,6 +156,33 @@ public class MainController implements AutoCloseable {
             build.put(slotKey, part);
             refreshBuild();
         });
+    }
+
+    private void showProcessorPage() {
+        builderScroll.setVisible(false);
+        builderScroll.setManaged(false);
+        motherboardPageController.getView().setVisible(false);
+        motherboardPageController.getView().setManaged(false);
+        processorPageController.getView().setVisible(true);
+        processorPageController.getView().setManaged(true);
+    }
+
+    private void showMotherboardPage() {
+        builderScroll.setVisible(false);
+        builderScroll.setManaged(false);
+        processorPageController.getView().setVisible(false);
+        processorPageController.getView().setManaged(false);
+        motherboardPageController.getView().setVisible(true);
+        motherboardPageController.getView().setManaged(true);
+    }
+
+    private void showBuilderPage() {
+        processorPageController.getView().setVisible(false);
+        processorPageController.getView().setManaged(false);
+        motherboardPageController.getView().setVisible(false);
+        motherboardPageController.getView().setManaged(false);
+        builderScroll.setVisible(true);
+        builderScroll.setManaged(true);
     }
 
     private void saveBuild() {

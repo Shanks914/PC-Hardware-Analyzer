@@ -4,71 +4,51 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/** Loads the app-owned component catalog asynchronously from packaged JSON resources. */
 public class CatalogService implements AutoCloseable {
-    private static final URI CATALOG_URI = URI.create(
-            "https://raw.githubusercontent.com/Shanks914/pc-hardware-catalog-bd/main/catalog.json"
-    );
-
     private final ObjectMapper mapper = new ObjectMapper();
-    private final HttpClient http = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(15))
-            .build();
     private final ExecutorService pool = Executors.newFixedThreadPool(2);
 
-    public CompletableFuture<List<Part>> fetchParts() {
+    public CompletableFuture<List<Part>> loadLocalParts() {
         return CompletableFuture.supplyAsync(() -> {
-            HttpRequest request = HttpRequest.newBuilder(CATALOG_URI)
-                    .timeout(Duration.ofSeconds(30))
-                    .header("User-Agent", "PC-Hardware-Analyzer")
-                    .GET()
-                    .build();
-
-            try {
-                HttpResponse<String> response =
-                        http.send(request, HttpResponse.BodyHandlers.ofString());
-
-                if (response.statusCode() != 200) {
-                    throw new IOException("GitHub returned HTTP " + response.statusCode());
-                }
-
-                JsonNode components = mapper.readTree(response.body()).path("components");
-                List<Part> result = new ArrayList<>();
-
-                for (JsonNode item : components) {
-                    String type = item.path("type").asText("");
-                    String name = item.path("name").asText("");
-                    double price = item.path("priceBdt").asDouble(-1);
-
-                    if (!type.isBlank() && !name.isBlank() && price >= 0) {
-                        result.add(new Part(
-                                type,
-                                name,
-                                item.path("specs").asText(""),
-                                price
-                        ));
-                    }
-                }
-
-                return result;
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new CompletionException(e);
-            } catch (IOException e) {
-                throw new CompletionException(e);
-            }
+            List<Part> result = new ArrayList<>();
+            readFile("/catalog/processors.json", result);
+            readFile("/catalog/motherboards.json", result);
+            return result;
         }, pool);
+    }
+
+    private void readFile(String resource, List<Part> result) {
+        try (InputStream stream = CatalogService.class.getResourceAsStream(resource)) {
+            if (stream == null) throw new IOException("Missing project catalog: " + resource);
+            JsonNode components = mapper.readTree(stream).path("components");
+            for (JsonNode item : components) {
+                String category = item.path("type").asText("");
+                String name = item.path("name").asText("");
+                String specs = item.path("specs").asText("");
+                double price = item.path("priceBdt").asDouble(-1);
+                Map<String, String> attributes = new LinkedHashMap<>();
+                item.fields().forEachRemaining(field -> {
+                    JsonNode value = field.getValue();
+                    if (value.isValueNode()) attributes.put(field.getKey(), value.asText());
+                });
+                if (!category.isBlank() && !name.isBlank() && price >= 0) {
+                    result.add(new Part(category, name, specs, price, attributes));
+                }
+            }
+        } catch (IOException e) {
+            throw new CompletionException(e);
+        }
     }
 
     @Override
