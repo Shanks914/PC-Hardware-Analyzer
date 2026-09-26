@@ -26,6 +26,7 @@
                 <fx:include fx:id="processorPage" source="processor-page.fxml" />
                 <fx:include fx:id="motherboardPage" source="motherboard-page.fxml" />
                 <fx:include fx:id="ramPage" source="ram-page.fxml" />
+                <fx:include fx:id="ssdPage" source="ssd-page.fxml" />
             </children>
         </StackPane>
     </center>

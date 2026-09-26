@@ -69,8 +69,25 @@ public final class BuildCompatibility {
                         + " modules but the motherboard has only " + slotCount + " memory slots.");
             }
         }
+        Part ssd = build.get("storage-ssd");
+        if (ssd != null) {
+            String interfaces = motherboard.attribute("storageInterfaces").toUpperCase(Locale.ROOT);
+            String ssdInterface = ssd.attribute("interface");
+            if (!interfaces.isBlank() && !ssdInterface.isBlank()) {
+                boolean supported = switch (ssdInterface.toUpperCase(Locale.ROOT)) {
+                    case "SATA" -> interfaces.contains("SATA") && (!ssd.attribute("formFactor").startsWith("M.2")
+                            || parseInt(motherboard.attribute("m2Slots")) > 0);
+                    case "PCIE NVME" -> interfaces.contains("NVME") && parseInt(motherboard.attribute("m2Slots")) > 0;
+                    case "USB" -> interfaces.contains("USB");
+                    default -> false;
+                };
+                if (!supported) return new Result(State.INCOMPATIBLE,
+                        "Not compatible: the selected motherboard does not support the SSD interface/slot requirements (" + ssdInterface + ").");
+            }
+        }
         return new Result(State.COMPATIBLE, "Compatible: processor and motherboard both use " + cpuSocket
-                + (ram == null ? "." : "; selected memory matches " + valueOrExtract(motherboard, "ramType", RAM_PATTERN) + "."));
+                + (ram == null ? "" : "; selected memory matches " + valueOrExtract(motherboard, "ramType", RAM_PATTERN))
+                + (ssd == null ? "." : "; selected SSD interface is supported."));
     }
 
     private static String valueOrExtract(Part part, String key, Pattern pattern) {
@@ -92,5 +109,9 @@ public final class BuildCompatibility {
         }
         Matcher matcher = pattern.matcher(part.specs());
         return matcher.find() ? Integer.parseInt(matcher.group(1)) : 0;
+    }
+
+    private static int parseInt(String value) {
+        try { return Integer.parseInt(value); } catch (NumberFormatException ignored) { return 0; }
     }
 }
