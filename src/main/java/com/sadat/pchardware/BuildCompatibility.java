@@ -8,6 +8,8 @@ import java.util.regex.Pattern;
 public final class BuildCompatibility {
     private static final Pattern SOCKET_PATTERN = Pattern.compile("(?i)\\b(AM\\s?\\d+|LGA\\s?-?\\s?\\d{4,5}|TR\\s?\\d+)\\b");
     private static final Pattern RAM_PATTERN = Pattern.compile("(?i)\\bDDR[345]\\b");
+    private static final Pattern CAPACITY_PATTERN = Pattern.compile("(?i)(\\d+)\\s*GB\\b");
+    private static final Pattern MODULES_PATTERN = Pattern.compile("(?i)(\\d+)\\s*[x×]");
 
     private BuildCompatibility() {}
 
@@ -54,6 +56,18 @@ public final class BuildCompatibility {
                 return new Result(State.UNKNOWN, "CPU and motherboard sockets match (" + cpuSocket
                         + "), but memory compatibility cannot be verified from the available specifications.");
             }
+            int memoryCapacity = numberOrExtract(ram, "capacityGb", CAPACITY_PATTERN);
+            int motherboardCapacity = numberOrExtract(motherboard, "maxMemoryGb", CAPACITY_PATTERN);
+            if (memoryCapacity > 0 && motherboardCapacity > 0 && memoryCapacity > motherboardCapacity) {
+                return new Result(State.INCOMPATIBLE, "Not compatible: selected RAM kit is " + memoryCapacity
+                        + "GB but the motherboard supports up to " + motherboardCapacity + "GB.");
+            }
+            int moduleCount = numberOrExtract(ram, "modules", MODULES_PATTERN);
+            int slotCount = numberOrExtract(motherboard, "memorySlots", Pattern.compile("(?i)(\\d+)\\s*(?:memory\\s+)?slots?\\b"));
+            if (moduleCount > 0 && slotCount > 0 && moduleCount > slotCount) {
+                return new Result(State.INCOMPATIBLE, "Not compatible: RAM kit uses " + moduleCount
+                        + " modules but the motherboard has only " + slotCount + " memory slots.");
+            }
         }
         return new Result(State.COMPATIBLE, "Compatible: processor and motherboard both use " + cpuSocket
                 + (ram == null ? "." : "; selected memory matches " + valueOrExtract(motherboard, "ramType", RAM_PATTERN) + "."));
@@ -68,5 +82,15 @@ public final class BuildCompatibility {
 
     private static String normalize(String value) {
         return value.replaceAll("\\s+", "").toUpperCase(Locale.ROOT);
+    }
+
+    private static int numberOrExtract(Part part, String key, Pattern pattern) {
+        String value = part.attribute(key);
+        if (!value.isBlank()) {
+            try { return Integer.parseInt(value); }
+            catch (NumberFormatException ignored) { return 0; }
+        }
+        Matcher matcher = pattern.matcher(part.specs());
+        return matcher.find() ? Integer.parseInt(matcher.group(1)) : 0;
     }
 }

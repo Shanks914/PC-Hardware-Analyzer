@@ -23,12 +23,12 @@ public class MainController implements AutoCloseable {
     @FXML private Node builderScroll;
     @FXML private ProcessorPageController processorPageController;
     @FXML private MotherboardPageController motherboardPageController;
+    @FXML private RamPageController ramPageController;
 
     private final CatalogService catalogService = new CatalogService();
     private final BuildRepository buildRepository = new SqliteBuildRepository();
     private final List<Part> sampleParts = List.of(
             new Part("GPU", "GeForce RTX 4060", "8GB · PCIe 4.0", 47000),
-            new Part("RAM", "Corsair Vengeance 16GB", "2 × 8GB · DDR4 · 3200MHz", 5200),
             new Part("Storage", "WD Blue SN580 1TB", "NVMe M.2 · PCIe 4.0", 8500),
             new Part("PSU", "Cooler Master MWE 650", "650W · 80+ Bronze", 7800)
     );
@@ -66,9 +66,19 @@ public class MainController implements AutoCloseable {
                     showBuilderPage();
                 }
         );
+        ramPageController.setActions(
+                this::showBuilderPage,
+                part -> {
+                    build.put("memory", part);
+                    refreshBuild();
+                    showBuilderPage();
+                }
+        );
         processorPageController.setParts(parts);
         motherboardPageController.setParts(parts);
         motherboardPageController.setSelectedProcessor(build.get("processor"));
+        ramPageController.setParts(parts);
+        ramPageController.setSelectedMotherboard(build.get("motherboard"));
         refreshBuild();
     }
 
@@ -81,6 +91,7 @@ public class MainController implements AutoCloseable {
         builderController.setSearchText(searchText);
         if (processorPageController != null) processorPageController.setSearchQuery(query);
         if (motherboardPageController != null) motherboardPageController.setSearchQuery(query);
+        if (ramPageController != null) ramPageController.setSearchQuery(query);
     }
 
     private void refreshBuild() {
@@ -94,7 +105,7 @@ public class MainController implements AutoCloseable {
         builderController.setCatalogStatus("Loading the project’s local JSON catalogs...");
         catalogService.loadLocalParts().whenComplete((loadedParts, error) -> Platform.runLater(() -> {
             if (error != null) {
-                builderController.setCatalogStatus("Could not read local processor/motherboard JSON. Other sample components remain available.");
+                builderController.setCatalogStatus("Could not read a local hardware JSON file. Other sample components remain available.");
             } else if (loadedParts.isEmpty()) {
                 builderController.setCatalogStatus("Local JSON files contain no valid components.");
             } else {
@@ -103,10 +114,13 @@ public class MainController implements AutoCloseable {
                 parts = List.copyOf(combined);
                 processorPageController.setParts(parts);
                 motherboardPageController.setParts(parts);
+                ramPageController.setParts(parts);
+                ramPageController.setSelectedMotherboard(build.get("motherboard"));
                 long cpuCount = loadedParts.stream().filter(part -> part.category().equalsIgnoreCase("CPU")).count();
                 long boardCount = loadedParts.stream().filter(part -> part.category().equalsIgnoreCase("Motherboard")).count();
-                builderController.setCatalogStatus("Loaded " + cpuCount + " processors and " + boardCount
-                        + " motherboards from local JSON. Other slots use sample data.");
+                long ramCount = loadedParts.stream().filter(part -> part.category().equalsIgnoreCase("RAM")).count();
+                builderController.setCatalogStatus("Loaded " + cpuCount + " processors, " + boardCount
+                        + " motherboards, and " + ramCount + " RAM kits from local JSON. Other slots use sample data.");
             }
         }));
     }
@@ -123,6 +137,13 @@ public class MainController implements AutoCloseable {
             motherboardPageController.setSelectedProcessor(build.get("processor"));
             motherboardPageController.setSelectedMotherboard(build.get("motherboard"));
             showMotherboardPage();
+            return;
+        }
+        if (slotKey.equals("memory")) {
+            ramPageController.setParts(parts);
+            ramPageController.setSelectedMotherboard(build.get("motherboard"));
+            ramPageController.setSelectedMemory(build.get("memory"));
+            showRamPage();
             return;
         }
         if (category == null) {
@@ -163,6 +184,8 @@ public class MainController implements AutoCloseable {
         builderScroll.setManaged(false);
         motherboardPageController.getView().setVisible(false);
         motherboardPageController.getView().setManaged(false);
+        ramPageController.getView().setVisible(false);
+        ramPageController.getView().setManaged(false);
         processorPageController.getView().setVisible(true);
         processorPageController.getView().setManaged(true);
     }
@@ -172,8 +195,21 @@ public class MainController implements AutoCloseable {
         builderScroll.setManaged(false);
         processorPageController.getView().setVisible(false);
         processorPageController.getView().setManaged(false);
+        ramPageController.getView().setVisible(false);
+        ramPageController.getView().setManaged(false);
         motherboardPageController.getView().setVisible(true);
         motherboardPageController.getView().setManaged(true);
+    }
+
+    private void showRamPage() {
+        builderScroll.setVisible(false);
+        builderScroll.setManaged(false);
+        processorPageController.getView().setVisible(false);
+        processorPageController.getView().setManaged(false);
+        motherboardPageController.getView().setVisible(false);
+        motherboardPageController.getView().setManaged(false);
+        ramPageController.getView().setVisible(true);
+        ramPageController.getView().setManaged(true);
     }
 
     private void showBuilderPage() {
@@ -181,6 +217,8 @@ public class MainController implements AutoCloseable {
         processorPageController.getView().setManaged(false);
         motherboardPageController.getView().setVisible(false);
         motherboardPageController.getView().setManaged(false);
+        ramPageController.getView().setVisible(false);
+        ramPageController.getView().setManaged(false);
         builderScroll.setVisible(true);
         builderScroll.setManaged(true);
     }
