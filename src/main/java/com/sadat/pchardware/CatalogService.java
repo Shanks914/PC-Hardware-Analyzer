@@ -29,6 +29,13 @@ public class CatalogService implements AutoCloseable {
             readFile("/catalog/hdds.json", result);
             readFile("/catalog/gpus.json", result);
             readFile("/catalog/psus.json", result);
+            readFile("/catalog/cpu-coolers.json", result);
+            readFile("/catalog/casings.json", result);
+            readFile("/catalog/casing-fans.json", result);
+            readFile("/catalog/monitors.json", result);
+            readFile("/catalog/keyboards.json", result);
+            readFile("/catalog/mice.json", result);
+            readFile("/catalog/ups.json", result);
             return result;
         }, pool);
     }

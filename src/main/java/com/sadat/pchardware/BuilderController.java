@@ -25,20 +25,20 @@ public class BuilderController {
     private final List<Slot> coreSlots = List.of(
             new Slot("processor", "Processor", "CPU", true),
             new Slot("motherboard", "Motherboard", "Motherboard", true),
-            new Slot("cpu-cooler", "CPU Cooler", null, false),
+            new Slot("cpu-cooler", "CPU Cooler", "CPU Cooler", false),
             new Slot("memory", "Desktop RAM", "RAM", true),
             new Slot("storage-ssd", "SSD", "Storage", false),
             new Slot("storage-hdd", "Hard Disk Drive", "Storage", false),
             new Slot("graphics", "Graphics Card", "GPU", true),
             new Slot("power", "Power Supply", "PSU", true),
-            new Slot("casing", "Casing", null, true),
-            new Slot("casing-fan", "Casing Fan", null, false)
+            new Slot("casing", "Casing", "Casing", true),
+            new Slot("casing-fan", "Casing Fan", "Casing Fan", false)
     );
     private final List<Slot> peripherals = List.of(
-            new Slot("monitor", "Monitor", null, false),
-            new Slot("keyboard", "Keyboard", null, false),
-            new Slot("mouse", "Mouse", null, false),
-            new Slot("ups", "UPS", null, false)
+            new Slot("monitor", "Monitor", "Monitor", false),
+            new Slot("keyboard", "Keyboard", "Keyboard", false),
+            new Slot("mouse", "Mouse", "Mouse", false),
+            new Slot("ups", "UPS", "UPS", false)
     );
     private final Map<String, HBox> rowsBySlot = new LinkedHashMap<>();
     private Map<String, Part> selected = Map.of();

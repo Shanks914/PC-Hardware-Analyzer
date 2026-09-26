@@ -117,12 +117,52 @@ public final class BuildCompatibility {
                 return new Result(State.UNKNOWN, "GPU power requirement is listed, but the selected PSU wattage could not be verified.");
             }
         }
+        Part cooler = build.get("cpu-cooler");
+        if (cooler != null) {
+            String supportedSockets = cooler.attribute("socketSupport");
+            if (!supportedSockets.isBlank() && !containsValue(supportedSockets, cpuSocket)) {
+                return new Result(State.INCOMPATIBLE, "Not compatible: CPU cooler does not support processor socket " + cpuSocket + ".");
+            }
+            int cpuTdp = parseInt(cpu.attribute("tdpWatts"));
+            int coolerTdp = parseInt(cooler.attribute("ratedTdpW"));
+            if (cpuTdp > 0 && coolerTdp > 0 && coolerTdp < cpuTdp) {
+                return new Result(State.INCOMPATIBLE, "Not compatible: cooler rating " + coolerTdp + "W is below the processor TDP of " + cpuTdp + "W.");
+            }
+        }
+        Part pcCase = build.get("casing");
+        if (pcCase != null) {
+            String formFactor = motherboard.attribute("formFactor");
+            String supportedBoards = pcCase.attribute("motherboardSupport");
+            if (!supportedBoards.isBlank() && !containsValueNormalized(supportedBoards, formFactor)) {
+                return new Result(State.INCOMPATIBLE, "Not compatible: case does not support the motherboard form factor " + formFactor + ".");
+            }
+            int gpuLength = parseInt(gpu == null ? "" : gpu.attribute("lengthMm"));
+            int gpuClearance = parseInt(pcCase.attribute("gpuMaxLengthMm"));
+            if (gpuLength > 0 && gpuClearance > 0 && gpuLength > gpuClearance) {
+                return new Result(State.INCOMPATIBLE, "Not compatible: graphics card is " + gpuLength + "mm long but the case supports up to " + gpuClearance + "mm.");
+            }
+            int coolerHeight = parseInt(cooler == null ? "" : cooler.attribute("coolerHeightMm"));
+            int coolerClearance = parseInt(pcCase.attribute("maxCpuCoolerHeightMm"));
+            if (coolerHeight > 0 && coolerClearance > 0 && coolerHeight > coolerClearance) {
+                return new Result(State.INCOMPATIBLE, "Not compatible: CPU cooler is " + coolerHeight + "mm high but the case supports up to " + coolerClearance + "mm.");
+            }
+        }
+        Part fan = build.get("casing-fan");
+        if (fan != null && pcCase != null) {
+            String supportedSizes = pcCase.attribute("supportedFanDiameters");
+            if (!supportedSizes.isBlank() && !containsValue(supportedSizes, fan.attribute("fanDiameter"))) {
+                return new Result(State.INCOMPATIBLE, "Not compatible: case does not list a mount for " + fan.attribute("fanDiameter") + " fans.");
+            }
+        }
         return new Result(State.COMPATIBLE, "Compatible: processor and motherboard both use " + cpuSocket
                 + (ram == null ? "" : "; selected memory matches " + valueOrExtract(motherboard, "ramType", RAM_PATTERN))
                 + (ssd == null ? "" : "; selected SSD interface is supported.")
                 + (hdd == null ? "" : "; selected HDD has a supported SATA connection.")
                 + (gpu == null ? "" : "; selected graphics card uses a compatible PCIe x16 slot"
-                + (psu == null ? "." : " and meets the selected PSU recommendation.")));
+                + (psu == null ? "." : " and meets the selected PSU recommendation."))
+                + (cooler == null ? "" : "; selected CPU cooler supports the processor.")
+                + (pcCase == null ? "" : "; selected case supports the motherboard and installed clearances.")
+                + (fan == null ? "" : "; selected casing fan fits the selected case."));
     }
 
     private static String valueOrExtract(Part part, String key, Pattern pattern) {
@@ -148,6 +188,17 @@ public final class BuildCompatibility {
 
     private static int parseInt(String value) {
         try { return Integer.parseInt(value); } catch (NumberFormatException ignored) { return 0; }
+    }
+
+    private static boolean containsValue(String pipeList, String value) {
+        return java.util.Arrays.stream(pipeList.split("\\|"))
+                .map(String::trim).anyMatch(item -> item.equalsIgnoreCase(value));
+    }
+
+    private static boolean containsValueNormalized(String pipeList, String value) {
+        return java.util.Arrays.stream(pipeList.split("\\|"))
+                .map(item -> item.replaceAll("[^a-zA-Z0-9]", "").toLowerCase(Locale.ROOT))
+                .anyMatch(item -> item.equals(value.replaceAll("[^a-zA-Z0-9]", "").toLowerCase(Locale.ROOT)));
     }
 
     private static int wattage(Part part) {
