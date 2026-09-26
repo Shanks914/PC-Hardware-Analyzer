@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.sadat.pchardware.MainController"
+            styleClass="app-root" stylesheets="@app.css">
+    <top>
+        <fx:include fx:id="header" source="header.fxml" />
+    </top>
+    <center>
+        <ScrollPane fitToWidth="true" pannable="true" styleClass="page-scroll">
+            <content>
+                <HBox spacing="20" styleClass="workspace">
+                    <children>
+                        <fx:include fx:id="builder" source="builder.fxml" HBox.hgrow="ALWAYS" />
+                        <fx:include fx:id="buildPanel" source="build-panel.fxml" />
+                    </children>
+                </HBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

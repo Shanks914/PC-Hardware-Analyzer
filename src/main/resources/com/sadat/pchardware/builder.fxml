@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sadat.pchardware.BuilderController" spacing="12" minWidth="540" styleClass="builder-view">
+    <padding><Insets top="8" right="2" bottom="12" left="2" /></padding>
+    <children>
+        <Label text="PC BUILDER QUOTE" styleClass="eyebrow" />
+        <Label text="Build your custom PC" styleClass="page-title" />
+        <Label fx:id="catalogStatus" text="Choose parts for your build." styleClass="status-label" />
+        <CheckBox fx:id="hideUnconfigured" text="Hide unconfigured components" styleClass="hide-checkbox" />
+        <Label text="Core components" styleClass="section-heading" />
+        <VBox fx:id="componentRows" spacing="9" />
+        <VBox fx:id="peripheralSection" spacing="9">
+            <children>
+                <Label text="Peripherals" styleClass="section-heading" />
+                <VBox fx:id="peripheralRows" spacing="9" />
+            </children>
+        </VBox>
+    </children>
+</VBox>

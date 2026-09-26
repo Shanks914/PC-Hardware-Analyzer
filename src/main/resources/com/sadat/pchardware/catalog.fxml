@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sadat.pchardware.CatalogController" spacing="10" minWidth="360" styleClass="catalog-view">
+    <padding><Insets top="8" right="2" bottom="12" left="2" /></padding>
+    <children>
+        <Label text="BUILD YOUR NEXT PC" styleClass="eyebrow" />
+        <Label text="Choose your components" styleClass="page-title" />
+        <Label text="Compare parts and keep an eye on your total build cost." styleClass="muted-label" />
+        <Label fx:id="catalogStatus" text="Showing sample parts until catalog sync completes" styleClass="status-label" />
+        <VBox fx:id="productList" spacing="12" />
+    </children>
+</VBox>

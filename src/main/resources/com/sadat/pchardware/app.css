@@ -1,0 +1,134 @@
+.app-root {
+    -fx-background-color: #0b0e14;
+    -fx-font-family: "Segoe UI", sans-serif;
+}
+.topbar {
+    -fx-background-color: #111722;
+    -fx-border-color: #202938;
+    -fx-border-width: 0 0 1 0;
+}
+.workspace { -fx-padding: 22; }
+.page-scroll, .page-scroll > .viewport {
+    -fx-background-color: #0b0e14;
+    -fx-border-color: transparent;
+}
+.panel {
+    -fx-background-color: #111722;
+    -fx-background-radius: 12;
+    -fx-border-color: #202938;
+    -fx-border-radius: 12;
+}
+.sidebar, .build-panel { -fx-background-insets: 0; }
+.brand-title, .panel-title {
+    -fx-text-fill: #f4f6fb;
+    -fx-font-size: 19px;
+    -fx-font-weight: bold;
+}
+.page-title {
+    -fx-text-fill: #f4f6fb;
+    -fx-font-size: 27px;
+    -fx-font-weight: bold;
+}
+.eyebrow, .part-category {
+    -fx-text-fill: #69d49b;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+.section-label {
+    -fx-text-fill: #8993a4;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+.muted-label, .status-label {
+    -fx-text-fill: #8993a4;
+    -fx-font-size: 12px;
+}
+.currency-label, .part-price {
+    -fx-text-fill: #f4f6fb;
+    -fx-font-weight: bold;
+}
+.part-name {
+    -fx-text-fill: #f4f6fb;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+.total-label {
+    -fx-text-fill: #69d49b;
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+}
+.text-field {
+    -fx-background-color: #0b0e14;
+    -fx-text-fill: #f4f6fb;
+    -fx-prompt-text-fill: #687386;
+    -fx-background-radius: 8;
+    -fx-border-color: #293446;
+    -fx-border-radius: 8;
+}
+.button {
+    -fx-background-radius: 7;
+    -fx-cursor: hand;
+}
+.button-primary {
+    -fx-background-color: #69d49b;
+    -fx-text-fill: #0b1711;
+    -fx-font-weight: bold;
+}
+.button-secondary, .button-quiet, .category-button {
+    -fx-background-color: #1a2230;
+    -fx-text-fill: #cbd3df;
+}
+.category-button {
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 10 12 10 12;
+}
+.category-selected {
+    -fx-background-color: #203a31;
+    -fx-text-fill: #78e2aa;
+}
+.build-item {
+    -fx-text-fill: #cbd3df;
+    -fx-font-size: 12px;
+    -fx-padding: 10;
+    -fx-background-color: #171f2c;
+    -fx-background-radius: 8;
+}
+.builder-view { -fx-padding: 8 2 12 2; }
+.section-heading {
+    -fx-text-fill: #e6ebf2;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-padding: 12 0 2 0;
+}
+.hide-checkbox { -fx-text-fill: #b7c1cf; }
+.quote-row {
+    -fx-background-color: #111722;
+    -fx-background-radius: 10;
+    -fx-border-color: #202938;
+    -fx-border-radius: 10;
+    -fx-padding: 13;
+}
+.quote-row-configured {
+    -fx-border-color: #315744;
+}
+.row-number {
+    -fx-text-fill: #69d49b;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 6 0 0;
+}
+.quote-row-title { -fx-text-fill: #f4f6fb; -fx-font-size: 13px; -fx-font-weight: bold; }
+.quote-row-selection { -fx-text-fill: #788497; -fx-font-size: 11px; }
+.selected-part-name { -fx-text-fill: #cbd3df; -fx-font-size: 11px; }
+.row-price { -fx-text-fill: #69d49b; -fx-font-size: 12px; -fx-font-weight: bold; }
+.required-badge, .optional-badge {
+    -fx-text-fill: #a6b2c2;
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+}
+.required-badge { -fx-text-fill: #eab875; }
+.power-label {
+    -fx-text-fill: #cbd3df;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
