@@ -3,7 +3,10 @@ package com.sadat.pchardware;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.StackPane;
 import javafx.scene.Node;
@@ -413,6 +416,7 @@ public class MainController implements AutoCloseable {
         dialog.setTitle("Save / Update build");
         dialog.setHeaderText(activeBuildId == null ? "Name your PC build" : "Update the saved PC build");
         dialog.setContentText("Build name:");
+        styleDialog(dialog, ButtonType.OK, ButtonType.CANCEL);
         Optional<String> result = dialog.showAndWait();
         if (result.isEmpty() || result.get().isBlank()) return;
         try {
@@ -475,9 +479,12 @@ public class MainController implements AutoCloseable {
                 "Delete build", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
         Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION,
                 "Delete '" + selected.name() + "'? This cannot be undone.",
-                deleteButton, javafx.scene.control.ButtonType.CANCEL);
+                deleteButton, ButtonType.CANCEL);
         confirmation.setTitle("Confirm deletion");
         confirmation.setHeaderText("Confirm deletion");
+        styleDialog(confirmation, deleteButton, ButtonType.CANCEL);
+        confirmation.getDialogPane().lookupButton(deleteButton).getStyleClass().remove("button-primary");
+        confirmation.getDialogPane().lookupButton(deleteButton).getStyleClass().add("button-danger");
         if (confirmation.showAndWait().filter(button -> button == deleteButton).isEmpty()) return;
         try {
             buildRepository.delete(selected.id());
@@ -550,7 +557,22 @@ public class MainController implements AutoCloseable {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message == null ? "An unexpected error occurred." : message);
+        styleDialog(alert, ButtonType.OK);
         alert.showAndWait();
+    }
+
+    private void styleDialog(Dialog<?> dialog, ButtonType primaryButton, ButtonType... secondaryButtons) {
+        DialogPane pane = dialog.getDialogPane();
+        var stylesheet = getClass().getResource("app.css");
+        if (stylesheet != null) pane.getStylesheets().add(stylesheet.toExternalForm());
+        pane.getStyleClass().add("app-dialog");
+        pane.setGraphic(null);
+        if (primaryButton != null && pane.lookupButton(primaryButton) != null) {
+            pane.lookupButton(primaryButton).getStyleClass().add("button-primary");
+        }
+        for (ButtonType button : secondaryButtons) {
+            if (pane.lookupButton(button) != null) pane.lookupButton(button).getStyleClass().add("button-secondary");
+        }
     }
 
     @Override

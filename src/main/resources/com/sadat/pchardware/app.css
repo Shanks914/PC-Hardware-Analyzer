@@ -79,6 +79,64 @@
     -fx-text-fill: #fff4f4;
     -fx-font-weight: bold;
 }
+.dialog-pane.app-dialog {
+    -fx-background-color: #111722;
+    -fx-border-color: #293446;
+    -fx-border-width: 1;
+    -fx-padding: 0;
+}
+.app-dialog > .header-panel {
+    -fx-background-color: #111722;
+    -fx-padding: 18 20 12 20;
+}
+.app-dialog > .header-panel > .label {
+    -fx-text-fill: #f4f6fb;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+.app-dialog > .content.label {
+    -fx-background-color: #111722;
+    -fx-text-fill: #cbd3df;
+    -fx-padding: 16 20 18 20;
+    -fx-font-size: 13px;
+}
+.app-dialog .label {
+    -fx-text-fill: #cbd3df;
+}
+.app-dialog .text-field {
+    -fx-background-color: #0b0e14;
+    -fx-text-fill: #f4f6fb;
+    -fx-prompt-text-fill: #687386;
+    -fx-highlight-fill: #315744;
+    -fx-highlight-text-fill: #ffffff;
+    -fx-border-color: #293446;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-padding: 8 10 8 10;
+}
+.app-dialog .button-bar {
+    -fx-background-color: #111722;
+    -fx-padding: 8 18 16 18;
+}
+.app-dialog .button {
+    -fx-background-radius: 7;
+    -fx-padding: 7 16 7 16;
+    -fx-cursor: hand;
+}
+.app-dialog .button-secondary {
+    -fx-background-color: #1a2230;
+    -fx-text-fill: #cbd3df;
+}
+.app-dialog .button-primary {
+    -fx-background-color: #69d49b;
+    -fx-text-fill: #0b1711;
+    -fx-font-weight: bold;
+}
+.app-dialog .button-danger {
+    -fx-background-color: #8d303b;
+    -fx-text-fill: #fff4f4;
+    -fx-font-weight: bold;
+}
 .saved-build-list, .saved-build-list .list-cell {
     -fx-background-color: #111722;
     -fx-text-fill: #cbd3df;
