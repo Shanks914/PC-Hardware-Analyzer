@@ -20,21 +20,25 @@ public class BuildPanelController {
     @FXML private Button loadButton;
     @FXML private Button deleteButton;
     @FXML private Button newButton;
+    @FXML private Button downloadButton;
 
     private Runnable onSave = () -> {};
     private Runnable onLoad = () -> {};
     private Runnable onDelete = () -> {};
     private Runnable onNew = () -> {};
+    private Runnable onDownload = () -> {};
 
-    public void setActions(Runnable save, Runnable load, Runnable delete, Runnable newBuild) {
+    public void setActions(Runnable save, Runnable load, Runnable delete, Runnable newBuild, Runnable download) {
         onSave = save;
         onLoad = load;
         onDelete = delete;
         onNew = newBuild;
+        onDownload = download;
         saveButton.setOnAction(event -> onSave.run());
         loadButton.setOnAction(event -> onLoad.run());
         deleteButton.setOnAction(event -> onDelete.run());
         newButton.setOnAction(event -> onNew.run());
+        downloadButton.setOnAction(event -> onDownload.run());
     }
 
     public void showBuild(List<Part> parts, String activeName) {

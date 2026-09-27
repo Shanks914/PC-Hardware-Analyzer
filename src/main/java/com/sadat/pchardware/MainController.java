@@ -8,10 +8,14 @@ import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.TextInputDialog;
+import javafx.stage.FileChooser;
+import javafx.stage.Window;
 import javafx.scene.layout.StackPane;
 import javafx.scene.Node;
 
 import java.sql.SQLException;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashMap;
@@ -43,16 +47,18 @@ public class MainController implements AutoCloseable {
     private String searchText = "";
     private Long activeBuildId;
     private String activeBuildName;
+    private boolean buildIsSaved;
 
     @FXML
     private void initialize() {
         builderController.setOnChoose(this::choosePart);
         builderController.setOnRemove(this::removePart);
         buildPanelController.setActions(
-                this::saveBuild,
+                () -> saveBuild(),
                 this::showLoadBuildPage,
                 this::showDeleteBuildPage,
-                this::newBuild
+                this::newBuild,
+                this::downloadBuildPdf
         );
         loadBuildPageController.configure("Load a saved build",
                 "Choose a saved build to restore it in the PC builder.", "Load selected build",
@@ -63,7 +69,7 @@ public class MainController implements AutoCloseable {
         processorPageController.setActions(
                 this::showBuilderPage,
                 part -> {
-                    build.put("processor", part);
+                    putPart("processor", part);
                     refreshBuild();
                     showBuilderPage();
                 }
@@ -71,7 +77,7 @@ public class MainController implements AutoCloseable {
         motherboardPageController.setActions(
                 this::showBuilderPage,
                 part -> {
-                    build.put("motherboard", part);
+                    putPart("motherboard", part);
                     ssdPageController.setSelectedMotherboard(part);
                     hddPageController.setSelectedMotherboard(part);
                     gpuPageController.setSelectedMotherboard(part);
@@ -82,34 +88,34 @@ public class MainController implements AutoCloseable {
         ramPageController.setActions(
                 this::showBuilderPage,
                 part -> {
-                    build.put("memory", part);
+                    putPart("memory", part);
                     refreshBuild();
                     showBuilderPage();
                 }
         );
         ssdPageController.setActions(this::showBuilderPage, part -> {
-            build.put("storage-ssd", part);
+            putPart("storage-ssd", part);
             refreshBuild();
             showBuilderPage();
         });
         hddPageController.setActions(this::showBuilderPage, part -> {
-            build.put("storage-hdd", part);
+            putPart("storage-hdd", part);
             refreshBuild();
             showBuilderPage();
         });
         gpuPageController.setActions(this::showBuilderPage, part -> {
-            build.put("graphics", part);
+            putPart("graphics", part);
             refreshBuild();
             showBuilderPage();
         });
         psuPageController.setActions(this::showBuilderPage, part -> {
-            build.put("power", part);
+            putPart("power", part);
             gpuPageController.setSelectedPsu(part);
             refreshBuild();
             showBuilderPage();
         });
         categoryChooserController.setActions(this::showBuilderPage, part -> {
-            build.put(categoryChooserController.getSelectedSlot(), part);
+            putPart(categoryChooserController.getSelectedSlot(), part);
             refreshBuild();
             showBuilderPage();
         });
@@ -137,7 +143,8 @@ public class MainController implements AutoCloseable {
     }
 
     private void refreshBuild() {
-        String label = activeBuildName == null ? "Unsaved build" : "Saved: " + activeBuildName;
+        String label = activeBuildName == null ? "Unsaved build"
+                : buildIsSaved ? "Saved: " + activeBuildName : "Changes not saved: " + activeBuildName;
         builderController.showSelections(build);
         buildPanelController.showBuild(List.copyOf(build.values()), label);
         buildPanelController.showCompatibility(BuildCompatibility.check(build));
@@ -268,7 +275,7 @@ public class MainController implements AutoCloseable {
         dialog.setHeaderText("Select a component for your build");
         dialog.setContentText("Part:");
         dialog.showAndWait().ifPresent(part -> {
-            build.put(slotKey, part);
+            putPart(slotKey, part);
             if (slotKey.equals("power")) gpuPageController.setSelectedPsu(part);
             refreshBuild();
         });
@@ -407,10 +414,10 @@ public class MainController implements AutoCloseable {
         categoryChooserController.getView().setVisible(true); categoryChooserController.getView().setManaged(true);
     }
 
-    private void saveBuild() {
+    private boolean saveBuild() {
         if (build.isEmpty()) {
             showMessage(Alert.AlertType.INFORMATION, "Empty build", "Add at least one part before saving.");
-            return;
+            return false;
         }
         TextInputDialog dialog = new TextInputDialog(activeBuildName == null ? "My PC Build" : activeBuildName);
         dialog.setTitle("Save / Update build");
@@ -418,18 +425,68 @@ public class MainController implements AutoCloseable {
         dialog.setContentText("Build name:");
         styleDialog(dialog, ButtonType.OK, ButtonType.CANCEL);
         Optional<String> result = dialog.showAndWait();
-        if (result.isEmpty() || result.get().isBlank()) return;
+        if (result.isEmpty() || result.get().isBlank()) return false;
         try {
             String requestedName = result.get().trim();
             Long existingId = activeBuildId;
             long savedId = buildRepository.save(existingId, requestedName, List.copyOf(build.values()));
             activeBuildName = requestedName;
             activeBuildId = savedId;
+            buildIsSaved = true;
             refreshBuild();
             showMessage(Alert.AlertType.INFORMATION, "Build saved", "“" + activeBuildName + "” was saved to the SQLite database.");
+            return true;
         } catch (SQLException e) {
             showMessage(Alert.AlertType.ERROR, "Database error", e.getMessage());
+            return false;
         }
+    }
+
+    private void downloadBuildPdf() {
+        if (build.isEmpty()) {
+            showMessage(Alert.AlertType.INFORMATION, "Empty build", "Add components before downloading a build PDF.");
+            return;
+        }
+        if (!buildIsSaved) {
+            ButtonType saveAndContinue = new ButtonType("Save / Update first", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
+            Alert prompt = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Save the current components before creating the PDF? The PDF will use the saved version.",
+                    saveAndContinue, ButtonType.CANCEL);
+            prompt.setTitle("Save build before PDF download");
+            prompt.setHeaderText("Save or update this build first");
+            styleDialog(prompt, saveAndContinue, ButtonType.CANCEL);
+            if (prompt.showAndWait().filter(saveAndContinue::equals).isEmpty()) return;
+            if (!saveBuild()) return;
+        }
+
+        try {
+            SavedBuild saved = buildRepository.findById(activeBuildId);
+            if (saved == null) {
+                buildIsSaved = false;
+                showMessage(Alert.AlertType.INFORMATION, "Build needs saving", "Save or update this build before downloading its PDF.");
+                return;
+            }
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle("Download PC build PDF");
+            chooser.setInitialFileName(pdfFileName(saved.name()));
+            chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF files", "*.pdf"));
+            Window owner = builderScroll.getScene() == null ? null : builderScroll.getScene().getWindow();
+            java.io.File selectedFile = chooser.showSaveDialog(owner);
+            if (selectedFile == null) return;
+            Path destination = selectedFile.toPath();
+            if (!destination.getFileName().toString().toLowerCase().endsWith(".pdf")) {
+                destination = destination.resolveSibling(destination.getFileName() + ".pdf");
+            }
+            BuildPdfExporter.export(destination, saved);
+            showMessage(Alert.AlertType.INFORMATION, "PDF downloaded", "Build PDF saved to:\n" + destination.toAbsolutePath());
+        } catch (SQLException | IOException e) {
+            showMessage(Alert.AlertType.ERROR, "PDF download failed", e.getMessage());
+        }
+    }
+
+    private String pdfFileName(String buildName) {
+        String safe = buildName.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
+        return (safe.isBlank() ? "PC Build" : safe) + ".pdf";
     }
 
     private void showLoadBuildPage() {
@@ -467,6 +524,7 @@ public class MainController implements AutoCloseable {
             activeBuildName = saved.name();
             build.clear();
             for (Part part : saved.parts()) build.put(slotFor(part), part);
+            buildIsSaved = true;
             refreshBuild();
             showBuilderPage();
         } catch (SQLException e) {
@@ -488,10 +546,11 @@ public class MainController implements AutoCloseable {
         if (confirmation.showAndWait().filter(button -> button == deleteButton).isEmpty()) return;
         try {
             buildRepository.delete(selected.id());
-            if (activeBuildId != null && activeBuildId == selected.id()) {
+            if (activeBuildId != null && activeBuildId.longValue() == selected.id()) {
                 activeBuildId = null;
                 activeBuildName = null;
                 build.clear();
+                buildIsSaved = false;
                 refreshBuild();
             }
             deleteBuildPageController.setBuilds(buildRepository.findAll());
@@ -524,11 +583,20 @@ public class MainController implements AutoCloseable {
         build.clear();
         activeBuildId = null;
         activeBuildName = null;
+        buildIsSaved = false;
         refreshBuild();
     }
 
+    private void putPart(String slotKey, Part part) {
+        Part previous = build.put(slotKey, part);
+        if (!part.equals(previous)) buildIsSaved = false;
+    }
+
     private void removePart(String slotKey) {
-        if (build.remove(slotKey) != null) refreshBuild();
+        if (build.remove(slotKey) != null) {
+            buildIsSaved = false;
+            refreshBuild();
+        }
     }
 
     private String slotFor(Part part) {
