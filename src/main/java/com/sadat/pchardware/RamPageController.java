@@ -49,6 +49,7 @@ public class RamPageController {
     private Part selectedMemory;
     private Consumer<Part> onAdd = part -> {};
     private Runnable onBack = () -> {};
+    private Runnable onCompare = () -> {};
     private int page;
 
     @FXML
@@ -77,6 +78,7 @@ public class RamPageController {
         onBack = back;
         onAdd = add;
     }
+    public void setCompareAction(Runnable action) { onCompare = action; }
 
     public void setParts(List<Part> parts) {
         memoryKits = parts.stream().filter(part -> part.category().equalsIgnoreCase("RAM")).toList();
@@ -148,6 +150,7 @@ public class RamPageController {
     }
 
     @FXML private void backToBuild() { onBack.run(); }
+    @FXML private void compareComponents() { onCompare.run(); }
 
     @FXML
     private void clearFilters() {

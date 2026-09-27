@@ -6,8 +6,6 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class BuildPanelController {
     @FXML private VBox buildList;
@@ -18,24 +16,28 @@ public class BuildPanelController {
     @FXML private Label compatibilityLabel;
     @FXML private Button saveButton;
     @FXML private Button loadButton;
+    @FXML private Button compareBuildsButton;
     @FXML private Button deleteButton;
     @FXML private Button newButton;
     @FXML private Button downloadButton;
 
     private Runnable onSave = () -> {};
     private Runnable onLoad = () -> {};
+    private Runnable onCompareBuilds = () -> {};
     private Runnable onDelete = () -> {};
     private Runnable onNew = () -> {};
     private Runnable onDownload = () -> {};
 
-    public void setActions(Runnable save, Runnable load, Runnable delete, Runnable newBuild, Runnable download) {
+    public void setActions(Runnable save, Runnable load, Runnable compareBuilds, Runnable delete, Runnable newBuild, Runnable download) {
         onSave = save;
         onLoad = load;
+        onCompareBuilds = compareBuilds;
         onDelete = delete;
         onNew = newBuild;
         onDownload = download;
         saveButton.setOnAction(event -> onSave.run());
         loadButton.setOnAction(event -> onLoad.run());
+        compareBuildsButton.setOnAction(event -> onCompareBuilds.run());
         deleteButton.setOnAction(event -> onDelete.run());
         newButton.setOnAction(event -> onNew.run());
         downloadButton.setOnAction(event -> onDownload.run());
@@ -55,7 +57,7 @@ public class BuildPanelController {
         double total = parts.stream().mapToDouble(Part::price).sum();
         totalLabel.setText(String.format("৳%,.0f", total));
         buildCountLabel.setText(parts.size() + (parts.size() == 1 ? " part selected" : " parts selected"));
-        powerLabel.setText(estimateWattage(parts) + "W");
+        powerLabel.setText(BuildComparisonMetrics.estimateBuildWatts(parts) + "W");
     }
 
     public void showCompatibility(BuildCompatibility.Result result) {
@@ -69,27 +71,4 @@ public class BuildPanelController {
         });
     }
 
-    private int estimateWattage(List<Part> parts) {
-        if (parts.isEmpty()) return 0;
-        int watts = 50;
-        Pattern pattern = Pattern.compile("(?i)\\b(\\d{2,3})\\s*W\\b");
-        for (Part part : parts) {
-            String category = part.category().toLowerCase();
-            if (category.equals("cpu") || category.equals("gpu")) {
-                Matcher matcher = pattern.matcher(part.specs());
-                if (matcher.find()) {
-                    watts += Integer.parseInt(matcher.group(1));
-                } else {
-                    watts += category.equals("cpu") ? 95 : 250;
-                }
-            } else if (category.equals("motherboard")) {
-                watts += 40;
-            } else if (category.equals("ram")) {
-                watts += 10;
-            } else if (category.equals("storage")) {
-                watts += 10;
-            }
-        }
-        return ((watts + 24) / 25) * 25;
-    }
 }

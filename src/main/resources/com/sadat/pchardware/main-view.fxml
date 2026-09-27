@@ -33,6 +33,7 @@
                 <fx:include fx:id="categoryChooser" source="category-chooser-page.fxml" />
                 <fx:include fx:id="loadBuildPage" source="load-build-page.fxml" />
                 <fx:include fx:id="deleteBuildPage" source="delete-build-page.fxml" />
+                <fx:include fx:id="comparisonPage" source="comparison-page.fxml" />
             </children>
         </StackPane>
     </center>

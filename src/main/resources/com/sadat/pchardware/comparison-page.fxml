@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<BorderPane fx:id="root" visible="false" managed="false" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.sadat.pchardware.ComparisonPageController" styleClass="app-root processor-page">
+ <center><VBox spacing="16" styleClass="workspace">
+  <children>
+   <HBox alignment="CENTER_LEFT" spacing="14"><children><Button text="← Back" onAction="#goBack" styleClass="button-secondary"/><VBox spacing="4"><children><Label text="SIDE-BY-SIDE ANALYSIS" styleClass="eyebrow"/><Label fx:id="pageTitle" text="Compare components" styleClass="page-title"/></children></VBox></children></HBox>
+   <Label fx:id="subtitle" text="Select two items to compare." styleClass="muted-label" wrapText="true"/>
+   <VBox fx:id="partSelectors" spacing="10" styleClass="panel"><padding><Insets top="16" right="18" bottom="16" left="18"/></padding><children>
+    <Label text="COMPARE COMPONENTS" styleClass="section-label"/>
+    <HBox spacing="12" alignment="CENTER_LEFT"><children><ComboBox fx:id="partA" promptText="Choose first part" maxWidth="Infinity" HBox.hgrow="ALWAYS"/><Label text="VS" styleClass="eyebrow"/><ComboBox fx:id="partB" promptText="Choose second part" maxWidth="Infinity" HBox.hgrow="ALWAYS"/><Button text="Compare" onAction="#compare" styleClass="button-primary"/></children></HBox>
+   </children></VBox>
+   <VBox fx:id="buildSelectors" visible="false" managed="false" spacing="10" styleClass="panel"><padding><Insets top="16" right="18" bottom="16" left="18"/></padding><children>
+    <Label text="COMPARE SAVED BUILDS" styleClass="section-label"/>
+    <HBox spacing="12" alignment="CENTER_LEFT"><children><ComboBox fx:id="buildA" promptText="First saved build" maxWidth="Infinity" HBox.hgrow="ALWAYS"/><Label text="VS" styleClass="eyebrow"/><ComboBox fx:id="buildB" promptText="Second saved build" maxWidth="Infinity" HBox.hgrow="ALWAYS"/><Button text="Compare" onAction="#compare" styleClass="button-primary"/></children></HBox>
+   </children></VBox>
+   <Label fx:id="recommendationLabel" text="" wrapText="true" styleClass="compare-recommendation"/>
+   <ScrollPane fitToWidth="true" pannable="true" VBox.vgrow="ALWAYS" styleClass="results-scroll"><content><GridPane fx:id="comparisonGrid" hgap="10" vgap="2" styleClass="comparison-grid"><columnConstraints><ColumnConstraints percentWidth="24"/><ColumnConstraints percentWidth="29"/><ColumnConstraints percentWidth="29"/><ColumnConstraints percentWidth="18"/></columnConstraints></GridPane></content></ScrollPane>
+   <Label fx:id="statusLabel" text="" wrapText="true" styleClass="muted-label"/>
+  </children>
+ </VBox></center>
+</BorderPane>

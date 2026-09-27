@@ -18,7 +18,7 @@
             <children>
                 <HBox alignment="CENTER_LEFT" spacing="14">
                     <children>
-                        <Button text="← Back to build" onAction="#backToBuild" styleClass="button-secondary" />
+                        <Button text="← Back to build" onAction="#backToBuild" styleClass="button-secondary" /><Button text="Compare two" onAction="#compareComponents" styleClass="button-secondary"/>
                         <VBox spacing="4">
                             <Label text="CHOOSE A COMPONENT" styleClass="eyebrow" />
                             <Label text="Motherboards" styleClass="page-title" />

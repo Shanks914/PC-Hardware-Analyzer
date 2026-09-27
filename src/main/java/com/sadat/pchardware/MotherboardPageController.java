@@ -57,6 +57,7 @@ public class MotherboardPageController {
     private Part selectedProcessor;
     private Consumer<Part> onAdd = part -> {};
     private Runnable onBack = () -> {};
+    private Runnable onCompare = () -> {};
     private int page;
 
     @FXML
@@ -84,6 +85,7 @@ public class MotherboardPageController {
         onBack = back;
         onAdd = add;
     }
+    public void setCompareAction(Runnable action) { onCompare = action; }
 
     public void setParts(List<Part> parts) {
         motherboards = parts.stream()
@@ -120,6 +122,7 @@ public class MotherboardPageController {
     }
 
     @FXML private void backToBuild() { onBack.run(); }
+    @FXML private void compareComponents() { onCompare.run(); }
 
     @FXML
     private void clearFilters() {

@@ -11,7 +11,7 @@
 <?import javafx.scene.layout.VBox?>
 <BorderPane fx:id="root" visible="false" managed="false" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.sadat.pchardware.HddPageController" styleClass="app-root processor-page">
  <center><VBox spacing="16" styleClass="workspace"><children>
-  <HBox alignment="CENTER_LEFT" spacing="14"><children><Button text="← Back to build" onAction="#backToBuild" styleClass="button-secondary"/><VBox spacing="4"><children><Label text="CHOOSE A COMPONENT" styleClass="eyebrow"/><Label text="Hard Disk Drives" styleClass="page-title"/></children></VBox></children></HBox>
+  <HBox alignment="CENTER_LEFT" spacing="14"><children><Button text="← Back to build" onAction="#backToBuild" styleClass="button-secondary"/><Button text="Compare two" onAction="#compareComponents" styleClass="button-secondary"/><VBox spacing="4"><children><Label text="CHOOSE A COMPONENT" styleClass="eyebrow"/><Label text="Hard Disk Drives" styleClass="page-title"/></children></VBox></children></HBox>
   <HBox spacing="18" VBox.vgrow="ALWAYS" styleClass="chooser-layout"><children>
    <ScrollPane fitToWidth="true" prefWidth="270" minWidth="245" maxWidth="300" styleClass="filter-scroll"><content><VBox spacing="11" styleClass="filter-panel"><children>
     <HBox alignment="CENTER_LEFT"><children><Label text="Filter HDDs" styleClass="panel-title"/><Label text="" HBox.hgrow="ALWAYS"/><Button text="Clear all" onAction="#clearFilters" styleClass="text-button"/></children></HBox>

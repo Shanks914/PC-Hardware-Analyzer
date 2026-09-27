@@ -78,6 +78,7 @@ public class CategoryChooserController {
     private int page;
     private Runnable onBack = () -> {};
     private Consumer<Part> onAdd = part -> {};
+    private Runnable onCompare = () -> {};
 
     @FXML private void initialize() {
         options(availabilityFilter, "Any availability", "In stock", "Pre-order", "Out of stock", "Not specified");
@@ -88,6 +89,7 @@ public class CategoryChooserController {
     private void options(ComboBox<String> box, String... values) { box.setItems(FXCollections.observableArrayList(values)); box.getSelectionModel().selectFirst(); }
     public Node getView() { return root; }
     public void setActions(Runnable back, Consumer<Part> add) { onBack = back; onAdd = add; }
+    public void setCompareAction(Runnable action) { onCompare = action; }
     public String getSelectedSlot() { return slotKey; }
     public void setParts(List<Part> parts) { allParts = List.copyOf(parts); if (profile != null) populateCategory(); }
     public void setSearchQuery(String query) { sharedSearch = query == null ? "" : query.trim(); if (searchField != null && profile != null) { searchField.setText(sharedSearch); applyFilters(); } }
@@ -144,6 +146,7 @@ public class CategoryChooserController {
     private List<String> splitValues(String value) { return List.of(value.split("\\|")); }
 
     @FXML private void backToBuild() { onBack.run(); }
+    @FXML private void compareComponents() { onCompare.run(); }
     @FXML private void clearFilters() {
         minPriceField.clear(); maxPriceField.clear(); availabilityFilter.getSelectionModel().selectFirst();
         brandFilter.getSelectionModel().selectFirst(); searchField.clear(); sharedSearch = ""; sortBox.getSelectionModel().selectFirst();

@@ -35,6 +35,7 @@ public class PsuPageController {
     private Part selectedPsu, selectedGpu;
     private Consumer<Part> onAdd = part -> {};
     private Runnable onBack = () -> {};
+    private Runnable onCompare = () -> {};
     private int page;
 
     @FXML private void initialize() {
@@ -51,6 +52,7 @@ public class PsuPageController {
     private void options(ComboBox<String> box,String... values) { box.setItems(FXCollections.observableArrayList(values)); box.getSelectionModel().selectFirst(); }
     public Node getView() { return root; }
     public void setActions(Runnable back, Consumer<Part> add) { onBack=back; onAdd=add; }
+    public void setCompareAction(Runnable action) { onCompare = action; }
     public void setParts(List<Part> parts) {
         psus=parts.stream().filter(p -> p.category().equalsIgnoreCase("PSU")).toList();
         Set<String> brands=new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
@@ -67,6 +69,7 @@ public class PsuPageController {
     public void setSelectedPsu(Part psu) { selectedPsu=psu; renderPage(); }
     public void setSearchQuery(String query) { searchField.setText(query==null?"":query); applyFilters(); }
     @FXML private void backToBuild() { onBack.run(); }
+    @FXML private void compareComponents() { onCompare.run(); }
     @FXML private void clearFilters() {
         minPriceField.clear(); maxPriceField.clear(); searchField.clear();
         for(ComboBox<String> box:List.of(availabilityFilter,brandFilter,wattageFilter,modularityFilter,efficiencyFilter,formFactorFilter,atxVersionFilter,sortBox)) box.getSelectionModel().selectFirst();

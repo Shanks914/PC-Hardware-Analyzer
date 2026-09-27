@@ -37,6 +37,7 @@ public class GpuPageController {
     private Part selectedGpu, selectedMotherboard, selectedPsu;
     private Consumer<Part> onAdd = part -> {};
     private Runnable onBack = () -> {};
+    private Runnable onCompare = () -> {};
     private int page;
 
     @FXML private void initialize() {
@@ -49,6 +50,7 @@ public class GpuPageController {
     private void options(ComboBox<String> box, String... values) { box.setItems(FXCollections.observableArrayList(values)); box.getSelectionModel().selectFirst(); }
     public Node getView() { return root; }
     public void setActions(Runnable back, Consumer<Part> add) { onBack = back; onAdd = add; }
+    public void setCompareAction(Runnable action) { onCompare = action; }
     public void setParts(List<Part> parts) {
         gpus = parts.stream().filter(p -> p.category().equalsIgnoreCase("GPU")).toList();
         motherboards = parts.stream().filter(p -> p.category().equalsIgnoreCase("Motherboard")).toList();
@@ -73,6 +75,7 @@ public class GpuPageController {
     public void setSelectedGpu(Part gpu) { selectedGpu = gpu; renderPage(); }
     public void setSearchQuery(String query) { searchField.setText(query == null ? "" : query); applyFilters(); }
     @FXML private void backToBuild() { onBack.run(); }
+    @FXML private void compareComponents() { onCompare.run(); }
     @FXML private void clearFilters() {
         minPriceField.clear(); maxPriceField.clear(); searchField.clear();
         for (ComboBox<String> box : List.of(availabilityFilter, brandFilter, outputFilter, chipsetFilter, memorySizeFilter, memoryTypeFilter, sortBox)) box.getSelectionModel().selectFirst();

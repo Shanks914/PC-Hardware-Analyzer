@@ -36,6 +36,7 @@ public class SsdPageController {
     private Part selectedSsd, selectedMotherboard;
     private Consumer<Part> onAdd = part -> {};
     private Runnable onBack = () -> {};
+    private Runnable onCompare = () -> {};
     private int page;
 
     @FXML private void initialize() {
@@ -57,6 +58,7 @@ public class SsdPageController {
     }
     public Node getView() { return root; }
     public void setActions(Runnable back, Consumer<Part> add) { onBack = back; onAdd = add; }
+    public void setCompareAction(Runnable action) { onCompare = action; }
     public void setParts(List<Part> parts) {
         motherboards = parts.stream().filter(p -> p.category().equalsIgnoreCase("Motherboard")).toList();
         ssds = parts.stream().filter(p -> p.category().equalsIgnoreCase("SSD")).toList();
@@ -78,6 +80,7 @@ public class SsdPageController {
     public void setSelectedSsd(Part ssd) { selectedSsd = ssd; renderPage(); }
     public void setSearchQuery(String query) { searchField.setText(query == null ? "" : query); applyFilters(); }
     @FXML private void backToBuild() { onBack.run(); }
+    @FXML private void compareComponents() { onCompare.run(); }
 
     @FXML private void clearFilters() {
         minPriceField.clear(); maxPriceField.clear(); searchField.clear();

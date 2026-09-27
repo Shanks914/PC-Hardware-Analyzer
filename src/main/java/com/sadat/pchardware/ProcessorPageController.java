@@ -53,6 +53,7 @@ public class ProcessorPageController {
     private Part selected;
     private Consumer<Part> onAdd = part -> {};
     private Runnable onBack = () -> {};
+    private Runnable onCompare = () -> {};
     private int page;
 
     @FXML
@@ -81,6 +82,7 @@ public class ProcessorPageController {
         onBack = back;
         onAdd = add;
     }
+    public void setCompareAction(Runnable action) { onCompare = action; }
 
     public void setParts(List<Part> parts) {
         processors = parts.stream()
@@ -107,6 +109,7 @@ public class ProcessorPageController {
     }
 
     @FXML private void backToBuild() { onBack.run(); }
+    @FXML private void compareComponents() { onCompare.run(); }
 
     @FXML
     private void clearFilters() {

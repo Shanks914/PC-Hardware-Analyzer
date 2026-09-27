@@ -36,6 +36,7 @@ public class HddPageController {
     private Part selectedHdd, selectedMotherboard, selectedSsd;
     private Consumer<Part> onAdd = part -> {};
     private Runnable onBack = () -> {};
+    private Runnable onCompare = () -> {};
     private int page;
 
     @FXML private void initialize() {
@@ -53,6 +54,7 @@ public class HddPageController {
     private void options(ComboBox<String> box, String... values) { box.setItems(FXCollections.observableArrayList(values)); box.getSelectionModel().selectFirst(); }
     public Node getView() { return root; }
     public void setActions(Runnable back, Consumer<Part> add) { onBack = back; onAdd = add; }
+    public void setCompareAction(Runnable action) { onCompare = action; }
     public void setParts(List<Part> parts) {
         motherboards = parts.stream().filter(p -> p.category().equalsIgnoreCase("Motherboard")).toList();
         hdds = parts.stream().filter(p -> p.category().equalsIgnoreCase("HDD")).toList();
@@ -72,6 +74,7 @@ public class HddPageController {
     public void setSelectedSsd(Part ssd) { selectedSsd = ssd; applyFilters(); }
     public void setSearchQuery(String query) { searchField.setText(query == null ? "" : query); applyFilters(); }
     @FXML private void backToBuild() { onBack.run(); }
+    @FXML private void compareComponents() { onCompare.run(); }
     @FXML private void clearFilters() {
         minPriceField.clear(); maxPriceField.clear(); searchField.clear();
         for (ComboBox<String> box : List.of(availabilityFilter,colorFilter,readSpeedFilter,writeSpeedFilter,brandFilter,capacityFilter,formFactorFilter,rpmFilter,sortBox)) box.getSelectionModel().selectFirst();

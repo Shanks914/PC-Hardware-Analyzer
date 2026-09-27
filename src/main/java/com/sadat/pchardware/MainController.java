@@ -43,6 +43,7 @@ public class MainController implements AutoCloseable {
     @FXML private CategoryChooserController categoryChooserController;
     @FXML private SavedBuildPageController loadBuildPageController;
     @FXML private SavedBuildPageController deleteBuildPageController;
+    @FXML private ComparisonPageController comparisonPageController;
 
     private final CatalogService catalogService = new CatalogService();
     private final BuildRepository buildRepository = new SqliteBuildRepository();
@@ -62,6 +63,7 @@ public class MainController implements AutoCloseable {
         buildPanelController.setActions(
                 () -> saveBuild(),
                 this::showLoadBuildPage,
+                this::showSavedBuildComparison,
                 this::showDeleteBuildPage,
                 this::newBuild,
                 this::downloadBuildPdf
@@ -125,6 +127,14 @@ public class MainController implements AutoCloseable {
             refreshBuild();
             showBuilderPage();
         });
+        processorPageController.setCompareAction(() -> showPartComparison("processor", this::showProcessorPage));
+        motherboardPageController.setCompareAction(() -> showPartComparison("motherboard", this::showMotherboardPage));
+        ramPageController.setCompareAction(() -> showPartComparison("memory", this::showRamPage));
+        ssdPageController.setCompareAction(() -> showPartComparison("storage-ssd", this::showSsdPage));
+        hddPageController.setCompareAction(() -> showPartComparison("storage-hdd", this::showHddPage));
+        gpuPageController.setCompareAction(() -> showPartComparison("graphics", this::showGpuPage));
+        psuPageController.setCompareAction(() -> showPartComparison("power", this::showPsuPage));
+        categoryChooserController.setCompareAction(() -> showPartComparison(categoryChooserController.getSelectedSlot(), this::showCategoryChooserPage));
         processorPageController.setParts(parts);
         motherboardPageController.setParts(parts);
         motherboardPageController.setSelectedProcessor(build.get("processor"));
@@ -168,6 +178,11 @@ public class MainController implements AutoCloseable {
                 region.prefWidthProperty().bind(pageHost.widthProperty());
                 region.prefHeightProperty().bind(pageHost.heightProperty());
             }
+        }
+        Node comparison = comparisonPageController.getView();
+        if (comparison instanceof Region region) {
+            region.prefWidthProperty().bind(pageHost.widthProperty());
+            region.prefHeightProperty().bind(pageHost.heightProperty());
         }
     }
 
@@ -568,6 +583,80 @@ public class MainController implements AutoCloseable {
         }
     }
 
+    private void showPartComparison(String slot, Runnable returnPage) {
+        if (slot == null || slot.isBlank()) return;
+        List<Part> choices = partsForSlot(slot);
+        if (choices.size() < 2) {
+            showMessage(Alert.AlertType.INFORMATION, "Not enough catalog items",
+                    "At least two products are required in this category to compare them.");
+            return;
+        }
+        String title = switch (slot) {
+            case "processor" -> "Processors";
+            case "motherboard" -> "Motherboards";
+            case "memory" -> "Desktop RAM";
+            case "storage-ssd" -> "SSDs";
+            case "storage-hdd" -> "Hard drives";
+            case "graphics" -> "Graphics cards";
+            case "power" -> "Power supplies";
+            case "cpu-cooler" -> "CPU coolers";
+            case "casing" -> "PC cases";
+            case "casing-fan" -> "Case fans";
+            case "monitor" -> "Monitors";
+            case "keyboard" -> "Keyboards";
+            case "mouse" -> "Mice";
+            case "ups" -> "UPS units";
+            default -> "Components";
+        };
+        comparisonPageController.showParts(slot, title, choices, build);
+        comparisonPageController.setBackAction(returnPage);
+        showComparisonPage();
+    }
+
+    private List<Part> partsForSlot(String slot) {
+        return parts.stream().filter(part -> switch (slot) {
+            case "processor" -> part.category().equalsIgnoreCase("CPU") || part.category().equalsIgnoreCase("Processor");
+            case "motherboard" -> part.category().equalsIgnoreCase("Motherboard") || part.category().equalsIgnoreCase("Mobo");
+            case "memory" -> part.category().equalsIgnoreCase("RAM");
+            case "storage-ssd" -> part.category().equalsIgnoreCase("SSD")
+                    || (part.category().equalsIgnoreCase("Storage") && !part.specs().toLowerCase().contains("hdd"));
+            case "storage-hdd" -> part.category().equalsIgnoreCase("HDD")
+                    || (part.category().equalsIgnoreCase("Storage") && part.specs().toLowerCase().contains("hdd"));
+            case "graphics" -> part.category().equalsIgnoreCase("GPU");
+            case "power" -> part.category().equalsIgnoreCase("PSU");
+            case "cpu-cooler" -> part.category().equalsIgnoreCase("CPU Cooler");
+            case "casing" -> part.category().equalsIgnoreCase("Casing");
+            case "casing-fan" -> part.category().equalsIgnoreCase("Casing Fan");
+            case "monitor" -> part.category().equalsIgnoreCase("Monitor");
+            case "keyboard" -> part.category().equalsIgnoreCase("Keyboard");
+            case "mouse" -> part.category().equalsIgnoreCase("Mouse");
+            case "ups" -> part.category().equalsIgnoreCase("UPS");
+            default -> false;
+        }).toList();
+    }
+
+    private void showSavedBuildComparison() {
+        try {
+            List<SavedBuild> saved = buildRepository.findAll();
+            if (saved.size() < 2) {
+                showMessage(Alert.AlertType.INFORMATION, "Two builds required",
+                        "Save at least two different PC builds before opening build comparison.");
+                return;
+            }
+            comparisonPageController.showBuilds(saved);
+            comparisonPageController.setBackAction(this::showBuilderPage);
+            showComparisonPage();
+        } catch (SQLException e) {
+            showMessage(Alert.AlertType.ERROR, "Database error", e.getMessage());
+        }
+    }
+
+    private void showComparisonPage() {
+        hideAllPages();
+        comparisonPageController.getView().setVisible(true);
+        comparisonPageController.getView().setManaged(true);
+    }
+
     private void showDeleteBuildPage() {
         hideAllPages();
         try {
@@ -628,7 +717,7 @@ public class MainController implements AutoCloseable {
     }
 
     private void hideSavedBuildPages() {
-        for (Node page : List.of(loadBuildPageController.getView(), deleteBuildPageController.getView())) {
+        for (Node page : List.of(loadBuildPageController.getView(), deleteBuildPageController.getView(), comparisonPageController.getView())) {
             page.setVisible(false);
             page.setManaged(false);
         }
@@ -640,7 +729,7 @@ public class MainController implements AutoCloseable {
         for (Node page : List.of(processorPageController.getView(), motherboardPageController.getView(),
                 ramPageController.getView(), ssdPageController.getView(), hddPageController.getView(),
                 gpuPageController.getView(), psuPageController.getView(), categoryChooserController.getView(),
-                loadBuildPageController.getView(), deleteBuildPageController.getView())) {
+                loadBuildPageController.getView(), deleteBuildPageController.getView(), comparisonPageController.getView())) {
             page.setVisible(false);
             page.setManaged(false);
         }
