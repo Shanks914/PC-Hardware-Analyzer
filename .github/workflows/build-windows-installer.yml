@@ -41,13 +41,20 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force target/installer-input | Out-Null
           Copy-Item target/pc-hardware-analyzer-1.0-SNAPSHOT.jar target/installer-input/
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $appVersion = $env:GITHUB_REF_NAME -replace '^v', ''
+          } else {
+            $appVersion = '1.0.1'
+          }
           jpackage `
             --type msi `
             --name "PC Hardware Analyzer" `
-            --app-version "1.0.0" `
+            --app-version $appVersion `
             --vendor "Shanks914" `
             --description "Build and check a compatible PC component list" `
             --input target/installer-input `
+            --module-path target/installer-input `
+            --add-modules "javafx.controls,javafx.fxml" `
             --main-jar pc-hardware-analyzer-1.0-SNAPSHOT.jar `
             --main-class com.sadat.pchardware.Main `
             --icon src/main/resources/icons/pc-hardware-analyzer.ico `
