@@ -1,6 +1,7 @@
 package com.sadat.pchardware;
 
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
@@ -11,6 +12,9 @@ import javafx.scene.control.TextInputDialog;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.Node;
 
 import java.sql.SQLException;
@@ -24,8 +28,11 @@ import java.util.function.Predicate;
 public class MainController implements AutoCloseable {
     @FXML private BuilderController builderController;
     @FXML private BuildPanelController buildPanelController;
+    @FXML private Region builder;
+    @FXML private Region buildPanel;
+    @FXML private HBox builderWorkspace;
     @FXML private StackPane pageHost;
-    @FXML private Node builderScroll;
+    @FXML private ScrollPane builderScroll;
     @FXML private ProcessorPageController processorPageController;
     @FXML private MotherboardPageController motherboardPageController;
     @FXML private RamPageController ramPageController;
@@ -134,7 +141,34 @@ public class MainController implements AutoCloseable {
         psuPageController.setParts(parts);
         psuPageController.setSelectedGpu(build.get("graphics"));
         categoryChooserController.setParts(parts);
+        bindResponsiveLayout();
         refreshBuild();
+    }
+
+    /** Bind the builder and chooser pages to the live size of the window's content area. */
+    private void bindResponsiveLayout() {
+        builderScroll.prefWidthProperty().bind(pageHost.widthProperty());
+        builderScroll.prefHeightProperty().bind(pageHost.heightProperty());
+
+        // Keep the quote panel proportional, then let the component list use the remaining width.
+        buildPanel.prefWidthProperty().bind(Bindings.max(230,
+                Bindings.min(330, pageHost.widthProperty().multiply(0.24))));
+        builder.prefWidthProperty().bind(Bindings.max(540,
+                pageHost.widthProperty().subtract(buildPanel.prefWidthProperty()).subtract(64)));
+
+        // Region preferred sizes include their CSS padding; the child area is 44px smaller.
+        builderWorkspace.prefWidthProperty().bind(pageHost.widthProperty());
+        builderWorkspace.prefHeightProperty().bind(pageHost.heightProperty());
+
+        for (Node page : List.of(processorPageController.getView(), motherboardPageController.getView(),
+                ramPageController.getView(), ssdPageController.getView(), hddPageController.getView(),
+                gpuPageController.getView(), psuPageController.getView(), categoryChooserController.getView(),
+                loadBuildPageController.getView(), deleteBuildPageController.getView())) {
+            if (page instanceof Region region) {
+                region.prefWidthProperty().bind(pageHost.widthProperty());
+                region.prefHeightProperty().bind(pageHost.heightProperty());
+            }
+        }
     }
 
     public void onViewReady() {
