@@ -15,11 +15,30 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** Reusable compare screen for a component category or two SQLite-saved builds. */
 public class ComparisonPageController {
+    private static final Set<String> NEUTRAL_ATTRIBUTES = Set.of(
+            "id", "name", "brand", "chipset", "chipsetfamily", "socket", "platform", "formfactor",
+            "color", "outputs", "interface", "protocol", "devicetype", "connection", "layout",
+            "switchtype", "lightingtype", "specialfeatures", "features", "mothersupport",
+            "motherboardsupport", "processorsupport", "processortype", "casetype", "fandiameter",
+            "fansize", "coolertype", "displaytype", "paneltype", "sensortype",
+            "atxversion", "pcieinterface", "modules"
+    );
+    private static final Set<String> LOWER_IS_BETTER = Set.of(
+            "pricebdt", "latency", "responsetimems", "maxresponsetimems", "noisedba", "powerdraww",
+            "tdpwatts", "lengthmm", "coolerheightmm", "rpmnoise", "recommendedpsuw"
+    );
+    private static final Set<String> DEPENDENCY_ATTRIBUTES = Set.of(
+            "socket", "socketsupport", "platform", "ramtype", "interface", "formfactor",
+            "motherboardsupport", "supportedfandiameters", "pcieinterface"
+    );
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("^\\s*(-?\\d+(?:\\.\\d+)?)\\s*(?:[a-zA-Z%/²³]+)?\\s*$");
+    private static final Pattern RESOLUTION_PATTERN = Pattern.compile("(?i)(\\d{3,5})\\s*[x×]\\s*(\\d{3,5})");
     @FXML private BorderPane root;
     @FXML private Label pageTitle, subtitle, recommendationLabel, statusLabel;
     @FXML private VBox partSelectors, buildSelectors;
@@ -87,21 +106,24 @@ public class ComparisonPageController {
         BuildCompatibility.Result secondCompatibility = BuildCompatibility.check(secondBuild);
         int firstWatts = BuildComparisonMetrics.estimatePartWatts(first);
         int secondWatts = BuildComparisonMetrics.estimatePartWatts(second);
+        String firstPower = powerDisplay(first, firstWatts), secondPower = powerDisplay(second, secondWatts);
         LinkedHashSet<String> keys = new LinkedHashSet<>();
         keys.addAll(first.attributes().keySet()); keys.addAll(second.attributes().keySet());
+        keys.removeIf(key -> key.equalsIgnoreCase("availability") || key.equalsIgnoreCase("priceBdt"));
         List<String> orderedKeys = keys.stream().sorted(String.CASE_INSENSITIVE_ORDER).toList();
 
         resetGrid(first.name(), second.name());
         int row = 1;
-        addRow(row++, "Price", money(first.price()), money(second.price()), compareLower(first.price(), second.price()));
-        addRow(row++, "Power / capacity", powerDisplay(first, firstWatts), powerDisplay(second, secondWatts),
-                firstWatts == 0 || secondWatts == 0 ? "" : compareLower(firstWatts, secondWatts));
-        addRow(row++, "Availability", value(first, "availability"), value(second, "availability"), "");
+        addRow(row++, "Price", money(first.price()), money(second.price()), betterNumeric(first.price(), second.price(), false, "lower price"));
+        addRow(row++, "Power / capacity", firstPower, secondPower, powerPreference(first, second, firstWatts, secondWatts));
+        addRow(row++, "Availability", value(first, "availability"), value(second, "availability"),
+                betterAttribute("availability", value(first, "availability"), value(second, "availability")));
         addRow(row++, "Compatibility with current build", compatibilityText(firstCompatibility), compatibilityText(secondCompatibility),
                 compatibilityPreference(firstCompatibility, secondCompatibility));
         for (String key : orderedKeys) {
             String a = value(first, key), b = value(second, key);
-            addRow(row++, pretty(key), a.isBlank() ? "—" : a, b.isBlank() ? "—" : b, "");
+            addRow(row++, pretty(key), a.isBlank() ? "—" : a, b.isBlank() ? "—" : b,
+                    betterForSpec(key, a, b, firstCompatibility, secondCompatibility));
         }
         String bottleneck = pairingAdvice(firstBuild, secondBuild, first, second);
         recommendationLabel.setText(recommend(first, second, firstCompatibility, secondCompatibility, bottleneck));
@@ -212,16 +234,228 @@ public class ComparisonPageController {
     }
 
     private String compatibilityPreference(BuildCompatibility.Result first, BuildCompatibility.Result second) {
-        if (first.state() == BuildCompatibility.State.INCOMPATIBLE && second.state() != BuildCompatibility.State.INCOMPATIBLE) return "Second fits";
-        if (second.state() == BuildCompatibility.State.INCOMPATIBLE && first.state() != BuildCompatibility.State.INCOMPATIBLE) return "First fits";
+        if (first.state() == BuildCompatibility.State.INCOMPATIBLE && second.state() != BuildCompatibility.State.INCOMPATIBLE) return "B fits";
+        if (second.state() == BuildCompatibility.State.INCOMPATIBLE && first.state() != BuildCompatibility.State.INCOMPATIBLE) return "A fits";
         return "";
+    }
+
+    /** Compare an individual attribute only when the direction is meaningful and consistent. */
+    private String betterAttribute(String key, String first, String second) {
+        if (first == null || second == null || first.isBlank() || second.isBlank()) return "";
+        if (first.trim().equalsIgnoreCase(second.trim())) return "Equal";
+        String normalized = key.replaceAll("[^a-zA-Z0-9]", "").toLowerCase(Locale.ROOT);
+        if (NEUTRAL_ATTRIBUTES.contains(normalized)) return "";
+
+        if (normalized.equals("availability")) {
+            int a = availabilityRank(first), b = availabilityRank(second);
+            return ranked(a, b, "better availability");
+        }
+        if (normalized.equals("efficiency")) return ranked(efficiencyRank(first), efficiencyRank(second), "higher efficiency");
+        if (normalized.equals("modularity")) return ranked(modularityRank(first), modularityRank(second), "more modular");
+        if (normalized.equals("outputwaveform")) return ranked(waveformRank(first), waveformRank(second), "cleaner output");
+        if (normalized.equals("technology")) return ranked(upsTechnologyRank(first), upsTechnologyRank(second), "stronger UPS protection");
+        if (normalized.equals("keyboardtechnology")) return ranked(keyboardRank(first), keyboardRank(second), "more capable key technology");
+        if (normalized.equals("ramtype")) return ranked(generationRank(first, "DDR"), generationRank(second, "DDR"), "newer memory generation");
+        if (normalized.equals("noiseclass")) {
+            Double a = numericValue(first), b = numericValue(second);
+            return a != null && b != null ? betterNumeric(a, b, false, "lower noise")
+                    : ranked(noiseRank(first), noiseRank(second), "quieter operation");
+        }
+        if (normalized.equals("airflowclass")) {
+            Double a = numericValue(first), b = numericValue(second);
+            return a != null && b != null ? betterNumeric(a, b, true, "higher airflow class")
+                    : ranked(airflowRank(first), airflowRank(second), "stronger airflow class");
+        }
+        if (normalized.equals("rpmclass")) {
+            Double a = numericValue(first), b = numericValue(second);
+            return a != null && b != null ? betterNumeric(a, b, true, "higher fan speed")
+                    : ranked(airflowRank(first), airflowRank(second), "higher speed class");
+        }
+        if (normalized.equals("memorytype")) return ranked(generationRank(first, "GDDR"), generationRank(second, "GDDR"), "newer graphics memory generation");
+        if (normalized.equals("atxversion")) return ranked(versionRank(first), versionRank(second), "newer PSU standard");
+        if (normalized.equals("resolution")) {
+            double a = resolutionScore(first), b = resolutionScore(second);
+            if (a == 0 || b == 0) return "";
+            return betterNumeric(a, b, true, "higher resolution");
+        }
+        if (normalized.equals("hotswappable") || normalized.equals("pcie5connector")) {
+            int a = booleanRank(first), b = booleanRank(second);
+            return ranked(a, b, "feature available");
+        }
+
+        Double a = numericValue(first), b = numericValue(second);
+        if (a == null || b == null) return "";
+        boolean higherIsBetter = !LOWER_IS_BETTER.contains(normalized);
+        String reason = higherIsBetter ? "higher" : "lower";
+        return betterNumeric(a, b, higherIsBetter, reason + " " + pretty(key).toLowerCase(Locale.ROOT));
+    }
+
+    private String betterForSpec(String key, String first, String second,
+                                 BuildCompatibility.Result firstCompatibility,
+                                 BuildCompatibility.Result secondCompatibility) {
+        String normalized = key.replaceAll("[^a-zA-Z0-9]", "").toLowerCase(Locale.ROOT);
+        if (DEPENDENCY_ATTRIBUTES.contains(normalized)) {
+            String fit = compatibilityPreference(firstCompatibility, secondCompatibility);
+            if (!fit.isBlank()) return fit;
+        }
+        return betterAttribute(key, first, second);
+    }
+
+    private String powerPreference(Part first, Part second, int firstWatts, int secondWatts) {
+        if (first.category().equalsIgnoreCase("PSU") && second.category().equalsIgnoreCase("PSU")) {
+            return betterAttribute("wattage", valueOrSpec(first, "wattage"), valueOrSpec(second, "wattage"));
+        }
+        if (first.category().equalsIgnoreCase("UPS") && second.category().equalsIgnoreCase("UPS")) {
+            return betterAttribute("capacityVA", valueOrSpec(first, "capacityVA"), valueOrSpec(second, "capacityVA"));
+        }
+        if (firstWatts == 0 || secondWatts == 0) return "";
+        return betterNumeric(firstWatts, secondWatts, false, "lower estimated draw");
+    }
+
+    private String valueOrSpec(Part part, String key) {
+        String value = part.attribute(key);
+        if (!value.isBlank()) return value;
+        Matcher number = Pattern.compile("(?i)(\\d+(?:\\.\\d+)?)\\s*(?:W|VA)\\b").matcher(part.name() + " " + part.specs());
+        return number.find() ? number.group(1) : "";
+    }
+
+    private String betterNumeric(double first, double second, boolean higherIsBetter, String reason) {
+        if (Double.compare(first, second) == 0) return "Equal";
+        boolean aWins = higherIsBetter ? first > second : first < second;
+        return (aWins ? "A" : "B") + " · " + reason;
+    }
+
+    private String ranked(int first, int second, String reason) {
+        if (first < 0 || second < 0) return "";
+        if (first == second) return "Equal";
+        return (first > second ? "A" : "B") + " · " + reason;
+    }
+
+    private Double numericValue(String raw) {
+        String cleaned = raw.replace(",", "").trim();
+        Matcher matcher = NUMBER_PATTERN.matcher(cleaned);
+        if (matcher.matches()) {
+            try { return Double.parseDouble(matcher.group(1)); }
+            catch (NumberFormatException ignored) { return null; }
+        }
+        Matcher range = Pattern.compile("(?i)^\\s*(?:up to\\s+)?(\\d+(?:\\.\\d+)?)\\s*[-–]\\s*(\\d+(?:\\.\\d+)?)").matcher(cleaned);
+        if (range.find()) {
+            try { return (Double.parseDouble(range.group(1)) + Double.parseDouble(range.group(2))) / 2.0; }
+            catch (NumberFormatException ignored) { return null; }
+        }
+        Matcher numericToken = Pattern.compile("(-?\\d+(?:\\.\\d+)?)").matcher(cleaned);
+        if (!numericToken.find()) return null;
+        try { return Double.parseDouble(numericToken.group(1)); }
+        catch (NumberFormatException ignored) { return null; }
+    }
+
+    private int availabilityRank(String value) {
+        String v = value.toLowerCase(Locale.ROOT);
+        if (v.contains("in stock") || v.equals("available")) return 3;
+        if (v.contains("pre-order") || v.contains("preorder")) return 2;
+        if (v.contains("out of stock")) return 1;
+        return -1;
+    }
+
+    private int efficiencyRank(String value) {
+        String v = value.toUpperCase(Locale.ROOT);
+        if (v.contains("TITANIUM")) return 7;
+        if (v.contains("PLATINUM")) return 6;
+        if (v.contains("GOLD")) return 5;
+        if (v.contains("SILVER")) return 4;
+        if (v.contains("BRONZE")) return 3;
+        if (v.contains("WHITE")) return 2;
+        if (v.contains("80+")) return 1;
+        return -1;
+    }
+
+    private int modularityRank(String value) {
+        String v = value.toLowerCase(Locale.ROOT);
+        if (v.contains("full")) return 3;
+        if (v.contains("semi")) return 2;
+        if (v.contains("non")) return 1;
+        return -1;
+    }
+
+    private int waveformRank(String value) {
+        String v = value.toLowerCase(Locale.ROOT);
+        if (v.contains("pure sine")) return 3;
+        if (v.contains("simulated") || v.contains("modified sine") || v.contains("stepped")) return 2;
+        if (v.contains("square")) return 1;
+        return -1;
+    }
+
+    private int upsTechnologyRank(String value) {
+        String v = value.toLowerCase(Locale.ROOT);
+        if (v.contains("online")) return 3;
+        if (v.contains("line-interactive") || v.contains("line interactive")) return 2;
+        if (v.contains("standby") || v.contains("offline")) return 1;
+        return -1;
+    }
+
+    private int keyboardRank(String value) {
+        String v = value.toLowerCase(Locale.ROOT);
+        if (v.contains("mechanical")) return 3;
+        if (v.contains("scissor")) return 2;
+        if (v.contains("membrane")) return 1;
+        return -1;
+    }
+
+    private int noiseRank(String value) {
+        String v = value.toLowerCase(Locale.ROOT);
+        if (v.contains("quiet") || v.contains("low")) return 3;
+        if (v.contains("moderate") || v.contains("medium")) return 2;
+        if (v.contains("loud") || v.contains("high")) return 1;
+        return -1;
+    }
+
+    private int airflowRank(String value) {
+        String v = value.toLowerCase(Locale.ROOT);
+        if (v.contains("very high") || v.contains("extreme")) return 4;
+        if (v.contains("high")) return 3;
+        if (v.contains("medium") || v.contains("moderate")) return 2;
+        if (v.contains("low")) return 1;
+        return -1;
+    }
+
+    private int versionRank(String value) {
+        Matcher matcher = Pattern.compile("(?i)(\\d+)\\.(\\d+)").matcher(value);
+        if (!matcher.find()) return -1;
+        return Integer.parseInt(matcher.group(1)) * 100 + Integer.parseInt(matcher.group(2));
+    }
+
+    private int generationRank(String value, String prefix) {
+        Matcher matcher = Pattern.compile("(?i)" + prefix + "\\s*(\\d+)").matcher(value);
+        if (!matcher.find()) return -1;
+        return Integer.parseInt(matcher.group(1));
+    }
+
+    private int booleanRank(String value) {
+        return switch (value.trim().toLowerCase(Locale.ROOT)) {
+            case "true", "yes", "available" -> 1;
+            case "false", "no", "not available" -> 0;
+            default -> -1;
+        };
+    }
+
+    private double resolutionScore(String value) {
+        Matcher matcher = RESOLUTION_PATTERN.matcher(value);
+        if (matcher.find()) return (double) Integer.parseInt(matcher.group(1)) * Integer.parseInt(matcher.group(2));
+        String normalized = value.toLowerCase(Locale.ROOT).replace(" ", "");
+        if (normalized.contains("8k")) return 7680d * 4320;
+        if (normalized.contains("5k")) return 5120d * 2880;
+        if (normalized.contains("4k") || normalized.contains("uhd")) return 3840d * 2160;
+        if (normalized.contains("1440") || normalized.contains("qhd") || normalized.contains("wqhd")) return 2560d * 1440;
+        if (normalized.contains("1080") || normalized.contains("fhd")) return 1920d * 1080;
+        if (normalized.contains("720") || normalized.contains("hd")) return 1280d * 720;
+        return 0;
     }
 
     private void resetGrid(String first, String second) {
         comparisonGrid.getChildren().clear();
         addHeader(0, "Specification", "Comparison");
-        addHeader(1, first, "Product A");
-        addHeader(2, second, "Product B");
+        addHeader(1, "A · " + first, "Product A");
+        addHeader(2, "B · " + second, "Product B");
         addHeader(3, "Better fit", "Result");
     }
 
@@ -304,8 +538,8 @@ public class ComparisonPageController {
         if (part.category().equalsIgnoreCase("UPS")) return "UPS capacity; not system draw";
         return estimate + " W estimated draw";
     }
-    private String compareLower(double a, double b) { return a < b ? "First" : a > b ? "Second" : "Equal"; }
-    private String compareLower(int a, int b) { return a < b ? "First" : a > b ? "Second" : "Equal"; }
+    private String compareLower(double a, double b) { return a < b ? "A · lower" : a > b ? "B · lower" : "Equal"; }
+    private String compareLower(int a, int b) { return a < b ? "A · lower" : a > b ? "B · lower" : "Equal"; }
     private String value(Part part, String key) { return part.attributes().getOrDefault(key, ""); }
     private String pretty(String key) {
         String spaced = key.replaceAll("([a-z])([A-Z])", "$1 $2").replaceAll("([A-Z])([A-Z][a-z])", "$1 $2");
