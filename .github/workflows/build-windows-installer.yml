@@ -1,0 +1,71 @@
+name: Build Windows installer
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Install WiX Toolset 3 for MSI packaging
+        shell: pwsh
+        run: |
+          choco install wixtoolset --version=3.14.1.20250415 --yes --no-progress
+          $wixDirectory = Get-ChildItem "${env:ProgramFiles(x86)}\WiX Toolset v3*" -Directory |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+          if (-not $wixDirectory) { throw "WiX Toolset 3 was not installed." }
+          Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $wixDirectory.FullName 'bin')
+
+      - name: Build application and copy runtime dependencies
+        run: mvn --batch-mode -DskipTests package
+
+      - name: Create Windows installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force target/installer-input | Out-Null
+          Copy-Item target/pc-hardware-analyzer-1.0-SNAPSHOT.jar target/installer-input/
+          jpackage `
+            --type msi `
+            --name "PC Hardware Analyzer" `
+            --app-version "1.0.0" `
+            --vendor "Shanks914" `
+            --description "Build and check a compatible PC component list" `
+            --input target/installer-input `
+            --main-jar pc-hardware-analyzer-1.0-SNAPSHOT.jar `
+            --main-class com.sadat.pchardware.Main `
+            --icon src/main/resources/icons/pc-hardware-analyzer.ico `
+            --dest target/installer `
+            --win-menu `
+            --win-shortcut `
+            --win-per-user-install
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pc-hardware-analyzer-windows-installer
+          path: target/installer/*.msi
+          if-no-files-found: error
+
+      - name: Attach installer to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: target/installer/*.msi

@@ -16,13 +16,21 @@ public class SqliteBuildRepository implements BuildRepository {
     private final String jdbcUrl;
 
     public SqliteBuildRepository() {
-        Path database = Path.of("data", "pc-hardware-analyzer.db").toAbsolutePath();
+        String localAppData = System.getenv("LOCALAPPDATA");
+        Path dataDirectory = localAppData == null || localAppData.isBlank()
+                ? Path.of(System.getProperty("user.home"), ".pc-hardware-analyzer")
+                : Path.of(localAppData, "PC Hardware Analyzer");
+        Path database = dataDirectory.resolve("pc-hardware-analyzer.db");
+        Path previousDatabase = Path.of("data", "pc-hardware-analyzer.db").toAbsolutePath();
         try {
-            Files.createDirectories(database.getParent());
+            Files.createDirectories(dataDirectory);
+            if (!Files.exists(database) && Files.isRegularFile(previousDatabase)) {
+                Files.copy(previousDatabase, database);
+            }
         } catch (IOException e) {
-            throw new IllegalStateException("Could not create the database folder", e);
+            throw new IllegalStateException("Could not prepare the user database folder", e);
         }
-        jdbcUrl = "jdbc:sqlite:" + database;
+        jdbcUrl = "jdbc:sqlite:" + database.toAbsolutePath();
         initializeSchema();
     }
 

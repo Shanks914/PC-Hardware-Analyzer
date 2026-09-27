@@ -3,6 +3,7 @@ package com.sadat.pchardware;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -17,6 +18,8 @@ public class Main extends Application {
         controller = loader.getController();
 
         stage.setTitle("PC Hardware Analyzer");
+        var icon = Main.class.getResource("/icons/pc-hardware-analyzer.png");
+        if (icon != null) stage.getIcons().add(new Image(icon.toExternalForm()));
         stage.setMinWidth(900);
         stage.setMinHeight(620);
         stage.setScene(scene);
