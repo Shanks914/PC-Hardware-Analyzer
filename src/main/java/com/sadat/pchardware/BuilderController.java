@@ -3,6 +3,7 @@ package com.sadat.pchardware;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -20,6 +21,7 @@ public class BuilderController {
     @FXML private VBox peripheralRows;
     @FXML private VBox peripheralSection;
     @FXML private Label catalogStatus;
+    @FXML private Button syncCatalogButton;
     @FXML private CheckBox hideUnconfigured;
 
     private final List<Slot> coreSlots = List.of(
@@ -44,6 +46,7 @@ public class BuilderController {
     private Map<String, Part> selected = Map.of();
     private BiConsumer<String, String> onChoose = (key, type) -> {};
     private Consumer<String> onRemove = key -> {};
+    private Runnable onSync = () -> {};
     private String searchText = "";
     private boolean hideEmpty;
 
@@ -65,6 +68,11 @@ public class BuilderController {
         onRemove = action;
     }
 
+    public void setOnSync(Runnable action) {
+        onSync = action;
+        syncCatalogButton.setOnAction(event -> onSync.run());
+    }
+
     public void setSearchText(String searchText) {
         this.searchText = searchText;
     }
@@ -75,6 +83,11 @@ public class BuilderController {
 
     public void setCatalogStatus(String status) {
         catalogStatus.setText(status);
+    }
+
+    public void setCatalogSyncing(boolean syncing) {
+        syncCatalogButton.setDisable(syncing);
+        syncCatalogButton.setText(syncing ? "Syncing…" : "Sync catalogs");
     }
 
     public void showSelections(Map<String, Part> selections) {

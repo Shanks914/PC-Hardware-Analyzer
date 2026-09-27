@@ -16,7 +16,6 @@ import javafx.scene.Node;
 import java.sql.SQLException;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Optional;
@@ -40,19 +39,19 @@ public class MainController implements AutoCloseable {
 
     private final CatalogService catalogService = new CatalogService();
     private final BuildRepository buildRepository = new SqliteBuildRepository();
-    private final List<Part> sampleParts = List.of();
-
-    private List<Part> parts = sampleParts;
+    private List<Part> parts = List.of();
     private final LinkedHashMap<String, Part> build = new LinkedHashMap<>();
     private String searchText = "";
     private Long activeBuildId;
     private String activeBuildName;
     private boolean buildIsSaved;
+    private boolean catalogLoaded;
 
     @FXML
     private void initialize() {
         builderController.setOnChoose(this::choosePart);
         builderController.setOnRemove(this::removePart);
+        builderController.setOnSync(() -> syncRemoteCatalogs(false));
         buildPanelController.setActions(
                 () -> saveBuild(),
                 this::showLoadBuildPage,
@@ -139,7 +138,7 @@ public class MainController implements AutoCloseable {
     }
 
     public void onViewReady() {
-        loadLocalCatalog();
+        syncRemoteCatalogs(true);
     }
 
     private void refreshBuild() {
@@ -150,44 +149,78 @@ public class MainController implements AutoCloseable {
         buildPanelController.showCompatibility(BuildCompatibility.check(build));
     }
 
-    private void loadLocalCatalog() {
-        builderController.setCatalogStatus("Loading the project’s local JSON catalogs...");
-        catalogService.loadLocalParts().whenComplete((loadedParts, error) -> Platform.runLater(() -> {
-            if (error != null) {
-                builderController.setCatalogStatus("Could not read a local catalog JSON file. Check the project resources and reload.");
-            } else if (loadedParts.isEmpty()) {
-                builderController.setCatalogStatus("Local JSON files contain no valid components.");
+    private void syncRemoteCatalogs(boolean startup) {
+        builderController.setCatalogSyncing(true);
+        builderController.setCatalogStatus(startup
+                ? "Fetching component catalogs from GitHub..."
+                : "Syncing component catalogs from GitHub...");
+        catalogService.loadRemoteParts().whenComplete((loadedParts, error) -> Platform.runLater(() -> {
+            if (error == null && !loadedParts.isEmpty()) {
+                builderController.setCatalogSyncing(false);
+                installCatalog(loadedParts, "Synced catalogs from GitHub");
+                return;
+            }
+            String reason = errorMessage(error);
+            if (startup && !catalogLoaded) {
+                builderController.setCatalogStatus("GitHub is unavailable; loading the bundled catalogs...");
+                catalogService.loadLocalParts().whenComplete((localParts, localError) -> Platform.runLater(() -> {
+                    builderController.setCatalogSyncing(false);
+                    if (localError != null || localParts.isEmpty()) {
+                        builderController.setCatalogStatus("Could not load remote or bundled catalogs: "
+                                + errorMessage(localError == null ? error : localError));
+                    } else {
+                        installCatalog(localParts, "Offline mode: bundled catalogs loaded; GitHub sync failed");
+                    }
+                }));
             } else {
-                List<Part> combined = new ArrayList<>(sampleParts);
-                combined.addAll(loadedParts);
-                parts = List.copyOf(combined);
-                processorPageController.setParts(parts);
-                motherboardPageController.setParts(parts);
-                ramPageController.setParts(parts);
-                ssdPageController.setParts(parts);
-                hddPageController.setParts(parts);
-                gpuPageController.setParts(parts);
-                psuPageController.setParts(parts);
-                categoryChooserController.setParts(parts);
-                ramPageController.setSelectedMotherboard(build.get("motherboard"));
-                ssdPageController.setSelectedMotherboard(build.get("motherboard"));
-                hddPageController.setSelectedMotherboard(build.get("motherboard"));
-                gpuPageController.setSelectedMotherboard(build.get("motherboard"));
-                gpuPageController.setSelectedPsu(build.get("power"));
-                psuPageController.setSelectedGpu(build.get("graphics"));
-                hddPageController.setSelectedSsd(build.get("storage-ssd"));
-                long cpuCount = loadedParts.stream().filter(part -> part.category().equalsIgnoreCase("CPU")).count();
-                long boardCount = loadedParts.stream().filter(part -> part.category().equalsIgnoreCase("Motherboard")).count();
-                long ramCount = loadedParts.stream().filter(part -> part.category().equalsIgnoreCase("RAM")).count();
-                long ssdCount = loadedParts.stream().filter(part -> part.category().equalsIgnoreCase("SSD")).count();
-                long hddCount = loadedParts.stream().filter(part -> part.category().equalsIgnoreCase("HDD")).count();
-                long gpuCount = loadedParts.stream().filter(part -> part.category().equalsIgnoreCase("GPU")).count();
-                long psuCount = loadedParts.stream().filter(part -> part.category().equalsIgnoreCase("PSU")).count();
-                long extrasCount = loadedParts.stream().filter(part -> List.of("CPU Cooler", "Casing", "Casing Fan", "Monitor", "Keyboard", "Mouse", "UPS").stream().anyMatch(category -> part.category().equalsIgnoreCase(category))).count();
-                builderController.setCatalogStatus("Loaded " + cpuCount + " processors, " + boardCount
-                        + " motherboards, " + ramCount + " RAM kits, " + ssdCount + " SSDs, " + hddCount + " HDDs, " + gpuCount + " graphics cards, " + psuCount + " power supplies, and " + extrasCount + " cooling/case/accessory products from local JSON.");
+                builderController.setCatalogSyncing(false);
+                builderController.setCatalogStatus("GitHub sync failed; kept the current catalog. " + reason);
             }
         }));
+    }
+
+    private void installCatalog(List<Part> loadedParts, String statusPrefix) {
+        parts = List.copyOf(loadedParts);
+        catalogLoaded = true;
+        processorPageController.setParts(parts);
+        motherboardPageController.setParts(parts);
+        ramPageController.setParts(parts);
+        ssdPageController.setParts(parts);
+        hddPageController.setParts(parts);
+        gpuPageController.setParts(parts);
+        psuPageController.setParts(parts);
+        categoryChooserController.setParts(parts);
+        ramPageController.setSelectedMotherboard(build.get("motherboard"));
+        ssdPageController.setSelectedMotherboard(build.get("motherboard"));
+        hddPageController.setSelectedMotherboard(build.get("motherboard"));
+        gpuPageController.setSelectedMotherboard(build.get("motherboard"));
+        gpuPageController.setSelectedPsu(build.get("power"));
+        psuPageController.setSelectedGpu(build.get("graphics"));
+        hddPageController.setSelectedSsd(build.get("storage-ssd"));
+        long cpuCount = countParts("CPU");
+        long boardCount = countParts("Motherboard");
+        long ramCount = countParts("RAM");
+        long ssdCount = countParts("SSD");
+        long hddCount = countParts("HDD");
+        long gpuCount = countParts("GPU");
+        long psuCount = countParts("PSU");
+        long extrasCount = parts.stream().filter(part -> List.of("CPU Cooler", "Casing", "Casing Fan", "Monitor", "Keyboard", "Mouse", "UPS")
+                .stream().anyMatch(category -> part.category().equalsIgnoreCase(category))).count();
+        builderController.setCatalogStatus(statusPrefix + ": " + cpuCount + " processors, " + boardCount
+                + " motherboards, " + ramCount + " RAM kits, " + ssdCount + " SSDs, " + hddCount + " HDDs, "
+                + gpuCount + " graphics cards, " + psuCount + " power supplies, and " + extrasCount
+                + " cooling/case/accessory products.");
+    }
+
+    private long countParts(String category) {
+        return parts.stream().filter(part -> part.category().equalsIgnoreCase(category)).count();
+    }
+
+    private String errorMessage(Throwable error) {
+        if (error == null) return "No valid components were returned.";
+        Throwable cause = error;
+        while (cause.getCause() != null) cause = cause.getCause();
+        return cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
     }
 
     private void choosePart(String slotKey, String category) {
