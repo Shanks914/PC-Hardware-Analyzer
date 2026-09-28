@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$repository = 'Shanks914/PC-Hardware-Analyzer'
+$repository = 'Shanks914/PC-Hardware-Benchmark-Build-Analyzer'
 $releaseDownloads = "https://github.com/$repository/releases/latest/download"
 $versionUrl = "$releaseDownloads/PC-Hardware-Analyzer-version.txt"
 $portableUrl = "$releaseDownloads/PC-Hardware-Analyzer-portable.zip"
