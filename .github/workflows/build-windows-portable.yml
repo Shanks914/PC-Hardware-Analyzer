@@ -57,18 +57,23 @@ jobs:
             --dest target/portable
           Compress-Archive `
             -Path "target/portable/PC Hardware Analyzer" `
-            -DestinationPath "target/PC-Hardware-Analyzer-$appVersion-portable.zip" `
+            -DestinationPath "target/PC-Hardware-Analyzer-portable.zip" `
             -CompressionLevel Optimal
+          Set-Content -Path "target/PC-Hardware-Analyzer-version.txt" -Value $appVersion -NoNewline -Encoding ascii
 
       - name: Upload portable ZIP artifact
         uses: actions/upload-artifact@v4
         with:
           name: pc-hardware-analyzer-windows-portable
-          path: target/PC-Hardware-Analyzer-*-portable.zip
+          path: |
+            target/PC-Hardware-Analyzer-portable.zip
+            target/PC-Hardware-Analyzer-version.txt
           if-no-files-found: error
 
       - name: Attach portable ZIP to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.release_tag || github.event.release.tag_name }}
-          files: target/PC-Hardware-Analyzer-*-portable.zip
+          files: |
+            target/PC-Hardware-Analyzer-portable.zip
+            target/PC-Hardware-Analyzer-version.txt
