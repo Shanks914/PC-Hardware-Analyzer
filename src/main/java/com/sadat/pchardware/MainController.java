@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 
 public class MainController implements AutoCloseable {
     @FXML private BuilderController builderController;
@@ -268,7 +270,10 @@ public class MainController implements AutoCloseable {
     private String errorMessage(Throwable error) {
         if (error == null) return "No valid components were returned.";
         Throwable cause = error;
-        while (cause.getCause() != null) cause = cause.getCause();
+        while ((cause instanceof CompletionException || cause instanceof ExecutionException)
+                && cause.getCause() != null) {
+            cause = cause.getCause();
+        }
         return cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
     }
 

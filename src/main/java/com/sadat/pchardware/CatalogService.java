@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import javax.net.ssl.SSLParameters;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -32,11 +33,19 @@ public class CatalogService implements AutoCloseable {
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final ExecutorService pool = Executors.newFixedThreadPool(2);
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(12))
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .version(HttpClient.Version.HTTP_1_1)
-            .build();
+    private final HttpClient httpClient = createHttpClient();
+
+    private static HttpClient createHttpClient() {
+        SSLParameters tlsParameters = new SSLParameters();
+        // Some Windows TLS inspection layers fail Java's TLS 1.3 negotiation with GitHub.
+        tlsParameters.setProtocols(new String[]{"TLSv1.2"});
+        return HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(12))
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .version(HttpClient.Version.HTTP_1_1)
+                .sslParameters(tlsParameters)
+                .build();
+    }
 
     /** Downloads catalogs one at a time to avoid bursts of simultaneous TLS handshakes. */
     public CompletableFuture<List<Part>> loadRemoteParts() {
