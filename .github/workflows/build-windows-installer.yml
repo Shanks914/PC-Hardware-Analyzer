@@ -2,6 +2,12 @@ name: Build Windows installer
 
 on:
   workflow_dispatch:
+    inputs:
+      diagnostic:
+        description: Include a console window and detailed startup logging for troubleshooting
+        required: true
+        type: boolean
+        default: true
   push:
     tags:
       - "v*"
@@ -44,24 +50,41 @@ jobs:
           if ($env:GITHUB_REF_TYPE -eq 'tag') {
             $appVersion = $env:GITHUB_REF_NAME -replace '^v', ''
           } else {
-            $appVersion = '1.0.1'
+            $appVersion = '1.0.2'
           }
-          jpackage `
-            --type msi `
-            --name "PC Hardware Analyzer" `
-            --app-version $appVersion `
-            --vendor "Shanks914" `
-            --description "Build and check a compatible PC component list" `
-            --input target/installer-input `
-            --module-path target/installer-input `
-            --add-modules "javafx.controls,javafx.fxml" `
-            --main-jar pc-hardware-analyzer-1.0-SNAPSHOT.jar `
-            --main-class com.sadat.pchardware.Main `
-            --icon src/main/resources/icons/pc-hardware-analyzer.ico `
-            --dest target/installer `
-            --win-menu `
-            --win-shortcut `
-            --win-per-user-install
+          $jpackageArgs = @(
+            '--type'
+            'msi'
+            '--name'
+            'PC Hardware Analyzer'
+            '--app-version'
+            $appVersion
+            '--vendor'
+            'Shanks914'
+            '--description'
+            'Build and check a compatible PC component list'
+            '--input'
+            'target/installer-input'
+            '--module-path'
+            'target/installer-input'
+            '--add-modules'
+            'javafx.controls,javafx.fxml'
+            '--main-jar'
+            'pc-hardware-analyzer-1.0-SNAPSHOT.jar'
+            '--main-class'
+            'com.sadat.pchardware.Main'
+            '--icon'
+            'src/main/resources/icons/pc-hardware-analyzer.ico'
+            '--dest'
+            'target/installer'
+            '--win-menu'
+            '--win-shortcut'
+            '--win-per-user-install'
+          )
+          if ('${{ inputs.diagnostic }}' -eq 'true' -and $env:GITHUB_REF_TYPE -ne 'tag') {
+            $jpackageArgs += '--win-console'
+          }
+          jpackage @jpackageArgs
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
