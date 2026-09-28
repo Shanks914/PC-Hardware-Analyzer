@@ -50,7 +50,7 @@ jobs:
           if ($env:GITHUB_REF_TYPE -eq 'tag') {
             $appVersion = $env:GITHUB_REF_NAME -replace '^v', ''
           } else {
-            $appVersion = '1.0.2'
+            $appVersion = '1.0.3'
           }
           $jpackageArgs = @(
             '--type'
@@ -68,7 +68,7 @@ jobs:
             '--module-path'
             'target/installer-input'
             '--add-modules'
-            'javafx.controls,javafx.fxml'
+            'javafx.controls,javafx.fxml,java.sql,java.net.http'
             '--main-jar'
             'pc-hardware-analyzer-1.0-SNAPSHOT.jar'
             '--main-class'
