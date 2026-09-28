@@ -1,0 +1,74 @@
+name: Build portable Windows app
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to build and attach the portable ZIP to
+        required: true
+        type: string
+        default: v1.0.4
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  windows-portable:
+    runs-on: windows-latest
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.event.release.tag_name || github.ref }}
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build application and copy runtime dependencies
+        run: mvn --batch-mode -DskipTests package
+
+      - name: Create portable app image
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force target/portable-input | Out-Null
+          Copy-Item target/pc-hardware-analyzer-1.0-SNAPSHOT.jar target/portable-input/
+          Copy-Item target/installer-input/*.jar target/portable-input/
+          $releaseTag = '${{ inputs.release_tag }}'
+          if ([string]::IsNullOrWhiteSpace($releaseTag)) { $releaseTag = $env:GITHUB_REF_NAME }
+          $appVersion = $releaseTag -replace '^v', ''
+          jpackage `
+            --type app-image `
+            --name "PC Hardware Analyzer" `
+            --app-version $appVersion `
+            --vendor "Shanks914" `
+            --description "Build and check a compatible PC component list" `
+            --input target/portable-input `
+            --module-path target/portable-input `
+            --add-modules "javafx.controls,javafx.fxml,java.sql,java.net.http" `
+            --main-jar pc-hardware-analyzer-1.0-SNAPSHOT.jar `
+            --main-class com.sadat.pchardware.Main `
+            --icon src/main/resources/icons/pc-hardware-analyzer.ico `
+            --dest target/portable
+          Compress-Archive `
+            -Path "target/portable/PC Hardware Analyzer" `
+            -DestinationPath "target/PC-Hardware-Analyzer-$appVersion-portable.zip" `
+            -CompressionLevel Optimal
+
+      - name: Upload portable ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pc-hardware-analyzer-windows-portable
+          path: target/PC-Hardware-Analyzer-*-portable.zip
+          if-no-files-found: error
+
+      - name: Attach portable ZIP to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag || github.event.release.tag_name }}
+          files: target/PC-Hardware-Analyzer-*-portable.zip
