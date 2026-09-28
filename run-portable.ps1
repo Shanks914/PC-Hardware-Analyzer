@@ -4,7 +4,13 @@ $repository = 'Shanks914/PC-Hardware-Benchmark-Build-Analyzer'
 $releaseDownloads = "https://github.com/$repository/releases/latest/download"
 $versionUrl = "$releaseDownloads/PC-Hardware-Analyzer-version.txt"
 $portableUrl = "$releaseDownloads/PC-Hardware-Analyzer-portable.zip"
-$releaseVersion = (Invoke-WebRequest -Uri $versionUrl -UseBasicParsing).Content.Trim()
+$versionResponse = Invoke-WebRequest -Uri $versionUrl -UseBasicParsing
+$versionContent = $versionResponse.Content
+if ($versionContent -is [byte[]]) {
+    $releaseVersion = [System.Text.Encoding]::UTF8.GetString($versionContent).Trim()
+} else {
+    $releaseVersion = ([string]$versionContent).Trim()
+}
 
 if ($releaseVersion -notmatch '^\d+\.\d+\.\d+$') {
     throw "GitHub returned an invalid portable app version: '$releaseVersion'."
