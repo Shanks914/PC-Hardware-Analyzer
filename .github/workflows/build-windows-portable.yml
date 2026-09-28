@@ -50,7 +50,7 @@ jobs:
             --description "Build and check a compatible PC component list" `
             --input target/portable-input `
             --module-path target/portable-input `
-            --add-modules "javafx.controls,javafx.fxml,java.sql,java.net.http" `
+            --add-modules "javafx.controls,javafx.fxml,java.sql,java.net.http,jdk.crypto.ec" `
             --main-jar pc-hardware-analyzer-1.0-SNAPSHOT.jar `
             --main-class com.sadat.pchardware.Main `
             --icon src/main/resources/icons/pc-hardware-analyzer.ico `
